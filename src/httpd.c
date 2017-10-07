@@ -10,6 +10,7 @@
 #include <glib.h>
 #include <glib/gprintf.h>
 
+
 int main(int argc, char *argv[]) {
     
     char* htmlCode1 = "HTTP/1.1 200 OK\n"
@@ -22,17 +23,19 @@ int main(int argc, char *argv[]) {
     //"Vary: Accept-Encoding\n"
     "Content-Type: text/html\n"
     "\n"
-    //"Hello World! My payload includes a trailing CRLF.\n";
     "<!doctype html><body><h1>";
  
-    char* htmlCode3 = "</h1></body></html>";
+    if (argc < 2) {
+        // TODO: ERROR stuff
+        printf("The port must be a argument \n");
+	return -1;
+    }
    
-     printf("start of the program \n");
+    printf("start of the program \n");
     int sockfd;
     struct sockaddr_in server, client;
     char message[512];	
-    //char firstPartOf
-    // Getting 
+    // Getting the port number 
     int port = strtol(argv[1], NULL, 10);
 	
     // Create and bind a TCP socket.
@@ -45,7 +48,7 @@ int main(int argc, char *argv[]) {
     server.sin_addr.s_addr = htonl(INADDR_ANY);
     server.sin_port = htons(port);
     bind(sockfd, (struct sockaddr *) &server, (socklen_t) sizeof(server));
-	// Before the server can accept messages, it has to listen to the
+    // Before the server can accept messages, it has to listen to the
     // welcome port. A backlog of one connection is allowed.
     listen(sockfd, 1);
 
@@ -56,36 +59,43 @@ int main(int argc, char *argv[]) {
         // handle dedicated to this connection.
         socklen_t len = (socklen_t) sizeof(client);
         connfd = accept(sockfd, (struct sockaddr *) &client, &len);
-	char *ipNumber = inet_ntoa(client.sin_addr);
+	char *ipNumberFromClient = inet_ntoa(client.sin_addr);
 	int portNumberFromClient = ntohs(client.sin_port);
-	printf("ipNumber: %s:%d\n", ipNumber, portNumberFromClient);
+	//printf("ipNumber: %s:%d\n", ipNumberFromClient, portNumberFromClient);
 	ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
 	message[n] = '\0';
         fprintf(stdout, "Received:\n%s\n", message);
-	for (int i = 0; i < n; ++i) message[i] = toupper(message[i]);
 	//size_t sizeOfHtml = sizeof(htmlCode);
-	char* htmlCode2 = ipNumber;
-
-	char requestMethod[] = "GET"; //request strengur frá brynjari
+	
+	// Split up the string at " \r\n"
+	char** messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
+	gchar* requestMethod = messageSplit[0];
+	char* urlName = messageSplit[5];
+	char* urlRest = messageSplit[1];
+	char* header = "HTTP/1.1 200 OK\n"
+		       "Content-Type: text/html\n"
+		       "\n";
+	char* startOfHtml = "<!doctype html><body><p>";
+	char* endOfHtml = "</p></body></html>\n";
+	char* startOfUrl = "http://";
 	gchar* wholeHtmlCode;
-	char url[] = "url";
-	char IPaddress[] = "IP";
-	char portNumber[] = "port";
+	char portNumber[20];
+	sprintf(portNumber, "%d", portNumberFromClient);
 	char body[] = "body";
 	char head[] = "head";
 	if(g_strcmp0(requestMethod,"GET") == 0)
 	{
-	    //wholeHtmlCode = g_strconcat(url, IPaddress, portNumber, NULL);
-	    wholeHtmlCode = g_strconcat(htmlCode1,htmlCode2,htmlCode3,NULL);
+	    wholeHtmlCode = g_strconcat(header, startOfHtml, startOfUrl, urlName, urlRest ," ",  
+					ipNumberFromClient, ":", portNumber, endOfHtml, NULL);
 	}
-	else if(g_strcmp0(requestMethod,"POST") == 0)
+	else if(g_strcmp0(requestMethod,"HEAD") == 0)
 	{
 	    //púsla saman header hér?
 	    wholeHtmlCode = head;
 	}
-	else if(g_strcmp0(requestMethod, "HEAD") == 0)
+	else if(g_strcmp0(requestMethod, "POST") == 0)
 	{
-	    wholeHtmlCode = g_strconcat(url, IPaddress, portNumber, body, NULL);
+	    wholeHtmlCode = g_strconcat(urlName, urlRest, ipNumberFromClient, ":", portNumber, body, NULL);
 	}
 	else
 	{
@@ -96,7 +106,7 @@ int main(int argc, char *argv[]) {
 	g_free(wholeHtmlCode);
 	char connection[] = "close";
 	//int persistent = 0;
-	if(g_strcmp0(connection, "close") == 0 /*|| inactivity í 30sek || (g_strcmp0("HTTP/1.0") == 0 && ekki keep-alive)*/ )
+	if(g_strcmp0(connection, "clos") == 0 /*|| inactivity í 30sek || (g_strcmp0("HTTP/1.0") == 0 && ekki keep-alive)*/ )
 	{	
 	    printf("disconnecting");
 	    shutdown(connfd, SHUT_RDWR);
