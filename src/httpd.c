@@ -7,25 +7,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
+#include <glib.h>
+#include <glib/gprintf.h>
 
 int main(int argc, char *argv[]) {
     
-    char* htmlCode = "HTTP/1.1 200 OK\n"
-    "Date: Mon, 27 Jul 2009 12:28:53 GMT\n"
-    "Server: Apache\n"
-    "Last-Modified: Wed, 22 Jul 2009 19:15:56 GMT\n"
-    "ETag: \"34aa387-d-1568eb00\"\n"
-    "Accept-Ranges: bytes\n"
-    "Content-Length: 51\n"
-    "Vary: Accept-Encoding\n"
+    char* htmlCode1 = "HTTP/1.1 200 OK\n"
+    //"Date: Mon, 27 Jul 2009 12:28:53 GMT\n"
+    //"Server: Apache\n"
+    //"Last-Modified: Wed, 22 Jul 2009 19:15:56 GMT\n"
+    //"ETag: \"34aa387-d-1568eb00\"\n"
+    //"Accept-Ranges: bytes\n"
+    //"Content-Length: 51\n"
+    //"Vary: Accept-Encoding\n"
     "Content-Type: text/html\n"
     "\n"
     //"Hello World! My payload includes a trailing CRLF.\n";
-    "<!doctype html><body><h1>Page</h1></body></html>";
-    printf("start of the program \n");
+    "<!doctype html><body><h1>";
+ 
+    char* htmlCode3 = "</h1></body></html>";
+   
+     printf("start of the program \n");
     int sockfd;
     struct sockaddr_in server, client;
     char message[512];	
+    //char firstPartOf
     // Getting 
     int port = strtol(argv[1], NULL, 10);
 	
@@ -57,12 +63,50 @@ int main(int argc, char *argv[]) {
 	message[n] = '\0';
         fprintf(stdout, "Received:\n%s\n", message);
 	for (int i = 0; i < n; ++i) message[i] = toupper(message[i]);
-	size_t sizeOfHtml = sizeof(htmlCode);
-	send(connfd, htmlCode, strlen(htmlCode), 0);
-	// Close the connection.
-    //	shutdown(connfd, SHUT_RDWR);
-       // close(connfd);
-	printf("end of for loop\n");
+	//size_t sizeOfHtml = sizeof(htmlCode);
+	char* htmlCode2 = ipNumber;
+
+	char requestMethod[] = "GET"; //request strengur frá brynjari
+	gchar* wholeHtmlCode;
+	char url[] = "url";
+	char IPaddress[] = "IP";
+	char portNumber[] = "port";
+	char body[] = "body";
+	char head[] = "head";
+	if(g_strcmp0(requestMethod,"GET") == 0)
+	{
+	    //wholeHtmlCode = g_strconcat(url, IPaddress, portNumber, NULL);
+	    wholeHtmlCode = g_strconcat(htmlCode1,htmlCode2,htmlCode3,NULL);
+	}
+	else if(g_strcmp0(requestMethod,"POST") == 0)
+	{
+	    //púsla saman header hér?
+	    wholeHtmlCode = head;
+	}
+	else if(g_strcmp0(requestMethod, "HEAD") == 0)
+	{
+	    wholeHtmlCode = g_strconcat(url, IPaddress, portNumber, body, NULL);
+	}
+	else
+	{
+	    printf("error! A right request method was not given");
+	    exit(1);
+	}
+	send(connfd, wholeHtmlCode, strlen(wholeHtmlCode), 0);
+	g_free(wholeHtmlCode);
+	char connection[] = "close";
+	//int persistent = 0;
+	if(g_strcmp0(connection, "close") == 0 /*|| inactivity í 30sek || (g_strcmp0("HTTP/1.0") == 0 && ekki keep-alive)*/ )
+	{	
+	    printf("disconnecting");
+	    shutdown(connfd, SHUT_RDWR);
+    	    close(connfd);
+	    //exit(1);
+	    //
+	    //
+	    //á að vera break?
+	    break;
+	}	
     }
     // Close the connection
     shutdown(connfd, SHUT_RDWR);
