@@ -90,12 +90,15 @@ int main(int argc, char *argv[]) {
 	}
 	else if(g_strcmp0(requestMethod,"HEAD") == 0)
 	{
-	    //púsla saman header hér?
-	    wholeHtmlCode = head;
+	    wholeHtmlCode = g_strconcat(header,NULL);
 	}
 	else if(g_strcmp0(requestMethod, "POST") == 0)
 	{
+	    
 	    wholeHtmlCode = g_strconcat(urlName, urlRest, ipNumberFromClient, ":", portNumber, body, NULL);
+	    printf("urlanme: %s", urlName);
+	    printf("body: %s", body);
+	    
 	}
 	else
 	{
@@ -106,7 +109,7 @@ int main(int argc, char *argv[]) {
 	g_free(wholeHtmlCode);
 	char connection[] = "close";
 	//int persistent = 0;
-	if(g_strcmp0(connection, "clos") == 0 /*|| inactivity í 30sek || (g_strcmp0("HTTP/1.0") == 0 && ekki keep-alive)*/ )
+	if(g_strcmp0(connection, "close") == 0 /*|| inactivity í 30sek || (g_strcmp0("HTTP/1.0") == 0 && ekki keep-alive)*/ )
 	{	
 	    printf("disconnecting");
 	    shutdown(connfd, SHUT_RDWR);
@@ -115,7 +118,6 @@ int main(int argc, char *argv[]) {
 	    //
 	    //
 	    //á að vera break?
-	    break;
 	}	
     }
     // Close the connection
