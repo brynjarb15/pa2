@@ -68,8 +68,6 @@ int main(int argc, char *argv[]) {
 	gchar* wholeHtmlCode;
 	char portNumber[20];
 	sprintf(portNumber, "%d", portNumberFromClient);
-	char body[] = "body";
-	char head[] = "head";
 	char* connectionHeaderValue = NULL;
 	char* hostHeaderValue = NULL;
 	char* next = "init";
@@ -100,7 +98,21 @@ int main(int argc, char *argv[]) {
 	}
 	else if(g_strcmp0(requestMethod, "POST") == 0)
 	{
-	    wholeHtmlCode = g_strconcat(hostHeaderValue, urlRest, ipNumberFromClient, ":", portNumber, body, NULL);
+	    char** split = g_strsplit(message, "\r", -1);
+	    char* next = "init";
+	    char* body = NULL;
+	    
+	    for(int i = -1; next != NULL; i++)
+	    {
+		if(g_strcmp0(next, "\n") == 0 && split[i+1] != NULL)
+		{
+		   body = split[i+1];
+		}
+		next = split[i+1];
+	    }
+	    wholeHtmlCode = g_strconcat(header, startOfHtml, startOfUrl, hostHeaderValue, urlRest, " ", ipNumberFromClient, ":", portNumber, body, endOfHtml, NULL);
+	    printf("only the body: %s", body);
+	    g_strfreev(split);
 	}
 	else
 	{
