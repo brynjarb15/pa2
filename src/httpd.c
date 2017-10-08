@@ -10,6 +10,9 @@
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <time.h>
+#include <sys/time.h>
+
+typedef enum { false, true } bool;
 
 void logToFile(char* ipNumber, char* clientPort, char* requestMethod, char* requestedUrl, char* responseCode) {
 	time_t rawtime;
@@ -69,141 +72,166 @@ int main(int argc, char *argv[]) {
 	char *ipNumberFromClient = inet_ntoa(client.sin_addr);
 	int portNumberFromClient = ntohs(client.sin_port);
 	//printf("ipNumber: %s:%d\n", ipNumberFromClient, portNumberFromClient);
-	ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
-	message[n] = '\0';
-        fprintf(stdout, "Received:\n%s\n", message);
-	
-	// Split up the string at " \r\n"
-	char** messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
-	
-	gchar* requestMethod = messageSplit[0];
-	
-	char* urlRest = messageSplit[1];
-	
-	char* httpRequestType = messageSplit[2];
-	char* statusCode;
-	gchar* firstLineOfHeader;// = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
-	char* contentTypeHeader = "Content-Type: text/html\n";
-	char* endOfHeders = "\n";
-	gchar* header;// = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
+	while(1)
+	{	
+		struct timeval timeout;      
+		timeout.tv_sec = 10;
+    		timeout.tv_usec = 0;
+    		if (setsockopt (connfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+        		printf("setsockopt failed\n");
 
-	char* startOfHtml = "<!doctype html><body><p>";
-	char* endOfHtml = "</p></body></html>\n";
-	char* startOfUrl = "http://";
+	//	if (setsockopt (sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+//		        printf("setsockopt failed\n");
 
-	gchar* wholeHtmlCode;
-	char portNumber[20];
-	sprintf(portNumber, "%d", portNumberFromClient);
-	char body[] = "body";
-//	char head[] = "head";
-	char url[200];
-	char* connectionHeaderValue = NULL;
-	char* hostHeaderValue = NULL;
-	char* next = "init";
-	GTimer* timer;
-	for(int i = 0; next!= NULL; i++) {
-		if (g_strcmp0(next, "Connection:") == 0) {
-			connectionHeaderValue = messageSplit[i+1];
-		}
-		if (g_strcmp0(next, "Host:") == 0) {
-			hostHeaderValue = messageSplit[i+1];
-		}
-		//printf("%d: %s\n", i, messageSplit[i]);
-		next = messageSplit[i+1];
-	}
-	if (connectionHeaderValue == NULL) {
-		printf("Connection header was not found, error stuff");
-	}
-	if (hostHeaderValue == NULL) {
-                printf("Host header was not found, error stuff");
-        }
-	// Make the url of the the 3 parts
-	strcpy(url, startOfUrl);
-        strcat(url, hostHeaderValue);
-        strcat(url, urlRest);
-
-	if(g_strcmp0(requestMethod,"GET") == 0)
-	{
-	    if(g_strcmp0(urlRest ,"/favicon.ico") == 0)
-	    {
-		statusCode = "404 Not Found";
-		firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
-		header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
-		wholeHtmlCode = g_strconcat(header, "There is no favicon.ico in this server", NULL);
-	    }
-	    else
-	    {
-		statusCode = "200 OK";
-		firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
-	    	header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
-		wholeHtmlCode = g_strconcat(header, startOfHtml, url, " ", //startOfUrl, hostHeaderValue, urlRest ," ",  
-						ipNumberFromClient, ":", portNumber, endOfHtml, NULL);
-		logToFile(ipNumberFromClient, portNumber, requestMethod, url, "200 OK");
-	    }
-	}
-	else if(g_strcmp0(requestMethod,"HEAD") == 0)
-	{
-	    //púsla saman header hér?
-	    wholeHtmlCode = g_strconcat(header, NULL);
-	}
-	else if(g_strcmp0(requestMethod, "POST") == 0)
-	{
-	    char** split = g_strsplit(message, "\r", -1);
-	    char* next = "init";
-	    char* body = NULL;
-	    
-	    for(int i = -1; next != NULL; i++)
-	    {
-		if(g_strcmp0(next, "\n") == 0 && split[i+1] != NULL)
+		printf("after setsockopt \n");
+		memset(message, 0, sizeof message);
+		ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
+		printf("n: %d \n", n);
+		if(n == 0) // http://man7.org/linux/man-pages/man2/recv.2.html
 		{
-		   body = split[i+1];
+			printf("the other end has shutdown so we quit \n");
+			close(connfd);
+                   	break;
 		}
-		next = split[i+1];
-	    }
-	    statusCode = "200 OK";
-            firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
-            header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
-	    wholeHtmlCode = g_strconcat(header, startOfHtml, startOfUrl, hostHeaderValue, urlRest, " ", ipNumberFromClient, ":", portNumber, body, endOfHtml, NULL);
-	    printf("only the body: %s\n", body);
-	    g_strfreev(split);
-	}
-	else
-	{
-	    printf("error! A right request method was not given");
-	    exit(1);
-	}
-	timer = g_timer_new();
-	send(connfd, wholeHtmlCode, strlen(wholeHtmlCode), 0);
-	g_free(wholeHtmlCode);
-	g_free(firstLineOfHeader);
-	g_free(header);
-	g_strfreev(messageSplit);
-	connectionHeaderValue = "close"; // Have to close for now implament the other stuff later
-	//int persistent = 0;
-	printf("timer: %f \n", g_timer_elapsed(timer, NULL));
-	if(g_strcmp0(connectionHeaderValue, "close") == 0 /*|| inactivity í 30sek || (g_strcmp0("HTTP/1.0") == 0 && ekki keep-alive)*/ )
-	{
-	    	
-	    printf("disconnecting\n");
-	    shutdown(connfd, SHUT_RDWR);
-    	    close(connfd);
-	    //exit(1);
-	    //
-	    //
-	    //á að vera break?
-	    //break;
-	}
-	else
-	{
-	    while(g_timer_elapsed(timer, NULL) < 5)
-	    {
-		char mes[1024];
-		ssize_t n = recv(connfd, mes, sizeof(mes) - 1, 0);
-        	mes[n] = '\0';
-	        fprintf(stdout, "Received:\n%s\n", mes);
+		message[n] = '\0';
+		fprintf(stdout, "Received:\n%s\n", message);
+		
+		// Split up the string at " \r\n"
+		char** messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
+		
+		gchar* requestMethod = messageSplit[0];
+		
+		char* urlRest = messageSplit[1];
+		
+		char* httpRequestType = messageSplit[2];
+		char* statusCode;
+		gchar* firstLineOfHeader;// = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
+		char* contentTypeHeader = "Content-Type: text/html\n";
+		char* endOfHeders = "\n";
+		gchar* header;// = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
+
+		char* startOfHtml = "<!doctype html><body><p>";
+		char* endOfHtml = "</p></body></html>\n";
+		char* startOfUrl = "http://";
+
+		gchar* wholeHtmlCode;
+		char portNumber[20];
+		sprintf(portNumber, "%d", portNumberFromClient);
+		char url[200];
+		char* connectionHeaderValue = NULL;
+		char* hostHeaderValue = NULL;
+		char* next = "init";
+		GTimer* timer;
+		for(int i = 0; next!= NULL; i++) {
+			if (g_strcmp0(next, "Connection:") == 0) {
+				connectionHeaderValue = messageSplit[i+1];
+			}
+			if (g_strcmp0(next, "Host:") == 0) {
+				hostHeaderValue = messageSplit[i+1];
+			}
+			//printf("%d: %s\n", i, messageSplit[i]);
+			next = messageSplit[i+1];
+		}
+		if (connectionHeaderValue == NULL) {
+			printf("Connection header was not found, error stuff");
+		}
+		if (hostHeaderValue == NULL) {
+			printf("Host header was not found, error stuff");
+		}
+		// Make the url of the the 3 parts
+		strcpy(url, startOfUrl);
+		strcat(url, hostHeaderValue);
+		strcat(url, urlRest);
+
+		if(g_strcmp0(requestMethod,"GET") == 0)
+		{
+		    if(g_strcmp0(urlRest ,"/favicon.ico") == 0)
+		    {
+			statusCode = "404 Not Found";
+			firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
+			header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
+			wholeHtmlCode = g_strconcat(header, "There is no favicon.ico in this server", NULL);
+		    }
+		    else
+		    {
+			statusCode = "200 OK";
+			firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
+			header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
+			wholeHtmlCode = g_strconcat(header, startOfHtml, url, " ", //startOfUrl, hostHeaderValue, urlRest ," ",  
+							ipNumberFromClient, ":", portNumber, endOfHtml, NULL);
+			logToFile(ipNumberFromClient, portNumber, requestMethod, url, "200 OK");
+		    }
+		}
+		else if(g_strcmp0(requestMethod,"HEAD") == 0)
+		{
+		    //púsla saman header hér?
+		    statusCode = "200 OK";
+		    firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
+		    header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
+		    wholeHtmlCode = g_strconcat(header, NULL);
+		}
+		else if(g_strcmp0(requestMethod, "POST") == 0)
+		{
+		    char** split = g_strsplit(message, "\r", -1);
+		    char* next = "init";
+		    char* body = NULL;
+		    
+		    for(int i = -1; next != NULL; i++)
+		    {
+			if(g_strcmp0(next, "\n") == 0 && split[i+1] != NULL)
+			{
+			   body = split[i+1];
+			}
+			next = split[i+1];
+		    }
+		    statusCode = "200 OK";
+		    firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
+		    header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
+		    wholeHtmlCode = g_strconcat(header, startOfHtml, startOfUrl, hostHeaderValue, urlRest, " ", ipNumberFromClient, ":", portNumber, body, endOfHtml, NULL);
+		    printf("only the body: %s\n", body);
+		    g_strfreev(split);
+		}
+		else
+		{
+		    printf("error! A right request method was not given");
+		    exit(1);
+		}
+		timer = g_timer_new();
+		send(connfd, wholeHtmlCode, strlen(wholeHtmlCode), 0);
+		g_free(wholeHtmlCode);
+		g_free(firstLineOfHeader);
+		g_free(header);
+//		g_strfreev(messageSplit);
+		connectionHeaderValue = "close"; // Have to close for now implament the other stuff later
+		//int persistent = 0;
+		printf("----%s \n", connectionHeaderValue);
 		printf("timer: %f \n", g_timer_elapsed(timer, NULL));
-	    }
-	}	
+		if(g_strcmp0(connectionHeaderValue, "close") == 0 /*|| inactivity í 30sek || (g_strcmp0("HTTP/1.0") == 0 && ekki keep-alive)*/ )
+		{
+		    g_strfreev(messageSplit);
+		    printf("disconnecting\n");
+		    shutdown(connfd, SHUT_RDWR);
+		    close(connfd);
+		    //exit(1);
+		    //
+		    //
+		    //á að vera break?
+		    break;
+		}
+		printf("the connections is persistent so it wont close\n");
+		g_strfreev(messageSplit);
+	/*	else
+		{
+		    while(g_timer_elapsed(timer, NULL) < 5)
+		    {
+			char mes[1024];
+			ssize_t n = recv(connfd, mes, sizeof(mes) - 1, 0);
+			mes[n] = '\0';
+			fprintf(stdout, "Received:\n%s\n", mes);
+			printf("timer: %f \n", g_timer_elapsed(timer, NULL));
+	    	    }
+		}*/	
+    	}
     }
     // Close the connection
     shutdown(connfd, SHUT_RDWR);
