@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
 
     int connfd;
     for (;;) {
-	printf("begging of for loop\n");
+	printf("beging of for loop\n");
     	// We first have to accept a TCP connection, connfd is a fresh
         // handle dedicated to this connection.
         socklen_t len = (socklen_t) sizeof(client);
@@ -75,23 +75,24 @@ int main(int argc, char *argv[]) {
 	while(1)
 	{	
 		struct timeval timeout;      
-		timeout.tv_sec = 10;
+		timeout.tv_sec = 30;
     		timeout.tv_usec = 0;
     		if (setsockopt (connfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
         		printf("setsockopt failed\n");
-
-	//	if (setsockopt (sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
-//		        printf("setsockopt failed\n");
-
 		printf("after setsockopt \n");
 		memset(message, 0, sizeof message);
 		ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
-		printf("n: %d \n", n);
 		if(n == 0) // http://man7.org/linux/man-pages/man2/recv.2.html
 		{
 			printf("the other end has shutdown so we quit \n");
 			close(connfd);
                    	break;
+		}
+		else if (n < 0)
+		{
+			printf("There was a timeout\n");
+			close(connfd);
+                        break;
 		}
 		message[n] = '\0';
 		fprintf(stdout, "Received:\n%s\n", message);
@@ -202,15 +203,13 @@ int main(int argc, char *argv[]) {
 		g_free(firstLineOfHeader);
 		g_free(header);
 //		g_strfreev(messageSplit);
-		connectionHeaderValue = "close"; // Have to close for now implament the other stuff later
+		//connectionHeaderValue = "close"; // Have to close for now implament the other stuff later
 		//int persistent = 0;
-		printf("----%s \n", connectionHeaderValue);
-		printf("timer: %f \n", g_timer_elapsed(timer, NULL));
-		if(g_strcmp0(connectionHeaderValue, "close") == 0 /*|| inactivity í 30sek || (g_strcmp0("HTTP/1.0") == 0 && ekki keep-alive)*/ )
+		if(g_strcmp0(connectionHeaderValue, "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0/* && ekki keep-alive)*/ )
 		{
 		    g_strfreev(messageSplit);
-		    printf("disconnecting\n");
-		    shutdown(connfd, SHUT_RDWR);
+		    printf("The connection is not persistent so the connection will be closed\n");
+		    //shutdown(connfd, SHUT_RDWR);
 		    close(connfd);
 		    //exit(1);
 		    //
