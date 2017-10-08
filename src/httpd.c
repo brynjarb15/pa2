@@ -122,7 +122,6 @@ int main(int argc, char *argv[]) {
         strcat(url, hostHeaderValue);
         strcat(url, urlRest);
 
-	
 	if(g_strcmp0(requestMethod,"GET") == 0)
 	{
 	    if(g_strcmp0(urlRest ,"/favicon.ico") == 0)
@@ -141,7 +140,6 @@ int main(int argc, char *argv[]) {
 						ipNumberFromClient, ":", portNumber, endOfHtml, NULL);
 		logToFile(ipNumberFromClient, portNumber, requestMethod, url, "200 OK");
 	    }
-	    timer = g_timer_new();
 	}
 	else if(g_strcmp0(requestMethod,"HEAD") == 0)
 	{
@@ -150,19 +148,37 @@ int main(int argc, char *argv[]) {
 	}
 	else if(g_strcmp0(requestMethod, "POST") == 0)
 	{
-	    wholeHtmlCode = g_strconcat(hostHeaderValue, urlRest, ipNumberFromClient, ":", portNumber, body, NULL);
+	    char** split = g_strsplit(message, "\r", -1);
+	    char* next = "init";
+	    char* body = NULL;
+	    
+	    for(int i = -1; next != NULL; i++)
+	    {
+		if(g_strcmp0(next, "\n") == 0 && split[i+1] != NULL)
+		{
+		   body = split[i+1];
+		}
+		next = split[i+1];
+	    }
+	    statusCode = "200 OK";
+            firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
+            header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
+	    wholeHtmlCode = g_strconcat(header, startOfHtml, startOfUrl, hostHeaderValue, urlRest, " ", ipNumberFromClient, ":", portNumber, body, endOfHtml, NULL);
+	    printf("only the body: %s\n", body);
+	    g_strfreev(split);
 	}
 	else
 	{
 	    printf("error! A right request method was not given");
 	    exit(1);
 	}
+	timer = g_timer_new();
 	send(connfd, wholeHtmlCode, strlen(wholeHtmlCode), 0);
 	g_free(wholeHtmlCode);
 	g_free(firstLineOfHeader);
 	g_free(header);
 	g_strfreev(messageSplit);
-	connectionHeaderValue = "clos"; // Have to close for now implament the other stuff later
+	connectionHeaderValue = "close"; // Have to close for now implament the other stuff later
 	//int persistent = 0;
 	printf("timer: %f \n", g_timer_elapsed(timer, NULL));
 	if(g_strcmp0(connectionHeaderValue, "close") == 0 /*|| inactivity í 30sek || (g_strcmp0("HTTP/1.0") == 0 && ekki keep-alive)*/ )
