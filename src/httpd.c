@@ -13,18 +13,7 @@
 
 int main(int argc, char *argv[]) {
     
-    char* htmlCode1 = "HTTP/1.1 200 OK\n"
-    //"Date: Mon, 27 Jul 2009 12:28:53 GMT\n"
-    //"Server: Apache\n"
-    //"Last-Modified: Wed, 22 Jul 2009 19:15:56 GMT\n"
-    //"ETag: \"34aa387-d-1568eb00\"\n"
-    //"Accept-Ranges: bytes\n"
-    //"Content-Length: 51\n"
-    //"Vary: Accept-Encoding\n"
-    "Content-Type: text/html\n"
-    "\n"
-    "<!doctype html><body><h1>";
- 
+
     if (argc < 2) {
         // TODO: ERROR stuff
         printf("The port must be a argument \n");
@@ -35,7 +24,7 @@ int main(int argc, char *argv[]) {
     int sockfd;
     struct sockaddr_in server, client;
     char message[512];	
-    // Getting the port number 
+    // Getting the port number frome parameter
     int port = strtol(argv[1], NULL, 10);
 	
     // Create and bind a TCP socket.
@@ -65,7 +54,6 @@ int main(int argc, char *argv[]) {
 	ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
 	message[n] = '\0';
         fprintf(stdout, "Received:\n%s\n", message);
-	//size_t sizeOfHtml = sizeof(htmlCode);
 	
 	// Split up the string at " \r\n"
 	char** messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
