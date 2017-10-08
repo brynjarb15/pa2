@@ -1,1 +1,26 @@
-Update this.
+README
+
+The port number is gotten from a given parameter and a socket is created and bind. A TCP connection is accepted 
+and a connfd is created as a handle dedicated to the connection. When a request is gotten the message is split up 
+and put into an array. That array is then used to collect single information from the request. 
+
+A html page is created that holds different things for GET POST and HEAD requests.
+
+The GET request displays the URL of the requested page, the IP address and port number of the requestion client.
+
+The content for the POST request is the URL of the requested page, the IP address and port number of the requesting 
+client and the data in the body of the POST request. 
+
+the content for the HEAD request is only the header of the requested page.
+
+Depending on wich request is currently being processed the information for that request is then put together into a 
+single string, the information is in the middle of the body of the html code. That whole string is then sent and the 
+memory taken is then released again.
+
+For each request, a single line is printed into a log file. The line has the format:
+timestamp : <client ip>:<client port> <request method> <requested URL> : <response code>
+
+Depending on the value of the connection header field and the time of inactivity of sending requests, the connection is 
+either persitent or closed. If the value is closed, the time of inactivity is 30 seconds or we recieve HTTP/1.0 without a 
+keep-alive connection then the connections will be closed but open for a new connection. If none of that applies then the 
+connection will be persistent. 
