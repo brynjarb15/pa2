@@ -72,11 +72,16 @@ int main(int argc, char *argv[]) {
         connfd = accept(sockfd, (struct sockaddr *) &client, &len);
 	char *ipNumberFromClient = inet_ntoa(client.sin_addr);
 	int portNumberFromClient = ntohs(client.sin_port);
-	while(1)
-	{	
-		struct timeval timeout;      
-		timeout.tv_sec = 5; //TODO -Þetta á að vera 30-----------------------------------------------------------------------
-    		timeout.tv_usec = 0;
+	while(1337)
+	{
+		// Some ideas gotten here https://www.freebsd.org/cgi/man.cgi?query=setsockopt&sektion=2
+		// Set up setsockopt which cuts the connection after given time 
+		// in our case 30 sec.
+		struct timeval timeout;
+		// Set how many seconds before timeout
+		timeout.tv_sec = 5; //TODO -Þetta á að vera 30-----------------------------------------------------------------------	
+		// And how many microseconds 
+		timeout.tv_usec = 0;
     		if (setsockopt (connfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
         	{
 			printf("setsockopt failed\n");
@@ -101,15 +106,15 @@ int main(int argc, char *argv[]) {
 		// Split up the string at " \r\n"
 		char** messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
 		gchar* requestMethod = messageSplit[0]; // e.g. GET
-		char* urlRest = messageSplit[1];	// e.g. 
-		char* httpRequestType = messageSplit[2];
+		char* urlRest = messageSplit[1];	// e.g. /djammid 
+		char* httpRequestType = messageSplit[2];// e.g. HTTP/1.1
 		char* statusCode;
 		gchar* firstLineOfHeader;
 		char* contentTypeHeader = "Content-Type: text/html\n";
 		char* endOfHeders = "\n";
 		gchar* header;
 		
-		//first and last part of html
+		//first and last part of html we send
 		char* startOfHtml = "<!doctype html><body><p>";
 		char* endOfHtml = "</p></body></html>\n";
 		char* startOfUrl = "http://";
@@ -118,37 +123,36 @@ int main(int argc, char *argv[]) {
 		char portNumber[20];
 		sprintf(portNumber, "%d", portNumberFromClient);
 		char url[200];
-		
 		//the connection and header is gotten from the array that contains the whole message
 		char* connectionHeaderValue = NULL;
 		char* hostHeaderValue = NULL;
 		char* next = "init";
 		GTimer* timer;
 		for(int i = 0; next!= NULL; i++) {
-			if (g_strcmp0(next, "Connection:") == 0) {
+			//minnisleki???
+			if (g_strcmp0(g_ascii_strdown(next, strlen(next)), "connection:") == 0) {
 				connectionHeaderValue = messageSplit[i+1];
 			}
-			if (g_strcmp0(next, "Host:") == 0) {
+			if (g_strcmp0(g_ascii_strdown(next, strlen(next)), "host:") == 0) {
 				hostHeaderValue = messageSplit[i+1];
 			}
 			next = messageSplit[i+1];
 		}
-
 		if (connectionHeaderValue == NULL) {
-			printf("Connection header was not found, error stuff");
+			printf("Connection header was not found, error stuff\n");
 		}
 		if (hostHeaderValue == NULL) {
-			printf("Host header was not found, error stuff");
+			printf("Host header was not found, error stuff\n");
 		}
+
 		// Make the url out of the the 3 parts
 		strcpy(url, startOfUrl);
 		strcat(url, hostHeaderValue);
 		strcat(url, urlRest);
-		
 		//The status code and header of GET POST and HEAD of the request sent back successfully
 		statusCode = "200 OK";
-                firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
-                header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
+		firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
+		header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
 		
 		//Checking what kind of request method to handle
 		//
@@ -198,7 +202,12 @@ int main(int argc, char *argv[]) {
 		else
 		{
 		    printf("error! A right request method was not given");
-		    exit(1);
+		    statusCode = "400 Bad Request";
+                    firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
+                    header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
+                    wholeHtmlCode = g_strconcat(header, "This service only supports GET, HEAD and POST", NULL);
+		    // Do this so the connection will be closed after the error message has been sent
+		    connectionHeaderValue = "close";
 		}
 		//For each request, a single line is printed to a log file in the format:
                 //timestamp: <client ip>:<client port> <request method><requested URL> : <response code>
@@ -214,9 +223,8 @@ int main(int argc, char *argv[]) {
 		g_free(wholeHtmlCode);
 		g_free(firstLineOfHeader);
 		g_free(header);
-//		g_strfreev(messageSplit);
 		//connectionHeaderValue = "close"; // Have to close for now implament the other stuff later
-		if(g_strcmp0(connectionHeaderValue, "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0 )
+		if(g_strcmp0(g_ascii_strdown(connectionHeaderValue, strlen(connectionHeaderValue)), "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0 )
 		{
 		    g_strfreev(messageSplit);
 		    printf("The connection is not persistent so the connection will be closed\n");
