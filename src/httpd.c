@@ -58,7 +58,6 @@ int main(int argc, char *argv[]) {
 	// Split up the string at " \r\n"
 	char** messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
 	gchar* requestMethod = messageSplit[0];
-	char* urlName = messageSplit[5];
 	char* urlRest = messageSplit[1];
 	char* header = "HTTP/1.1 200 OK\n"
 		       "Content-Type: text/html\n"
@@ -71,9 +70,31 @@ int main(int argc, char *argv[]) {
 	sprintf(portNumber, "%d", portNumberFromClient);
 	char body[] = "body";
 	char head[] = "head";
+	char* connectionHeaderValue = NULL;
+	char* hostHeaderValue = NULL;
+	char* next = "init";
+	for(int i = 0; next!= NULL; i++) {
+		if (g_strcmp0(next, "Connection:") == 0) {
+			connectionHeaderValue = messageSplit[i+1];
+		}
+		if (g_strcmp0(next, "Host:") == 0) {
+			hostHeaderValue = messageSplit[i+1];
+		}
+		//printf("%d: %s\n", i, messageSplit[i]);
+		next = messageSplit[i+1];
+	}
+	if (connectionHeaderValue == NULL) {
+		printf("Connection header was not found, error stuff");
+	}
+	if (hostHeaderValue == NULL) {
+                printf("Host header was not found, error stuff");
+        }
+
+
+	
 	if(g_strcmp0(requestMethod,"GET") == 0)
 	{
-	    wholeHtmlCode = g_strconcat(header, startOfHtml, startOfUrl, urlName, urlRest ," ",  
+	    wholeHtmlCode = g_strconcat(header, startOfHtml, startOfUrl, hostHeaderValue, urlRest ," ",  
 					ipNumberFromClient, ":", portNumber, endOfHtml, NULL);
 	}
 	else if(g_strcmp0(requestMethod,"HEAD") == 0)
@@ -83,7 +104,7 @@ int main(int argc, char *argv[]) {
 	}
 	else if(g_strcmp0(requestMethod, "POST") == 0)
 	{
-	    wholeHtmlCode = g_strconcat(urlName, urlRest, ipNumberFromClient, ":", portNumber, body, NULL);
+	    wholeHtmlCode = g_strconcat(hostHeaderValue, urlRest, ipNumberFromClient, ":", portNumber, body, NULL);
 	}
 	else
 	{
@@ -92,9 +113,9 @@ int main(int argc, char *argv[]) {
 	}
 	send(connfd, wholeHtmlCode, strlen(wholeHtmlCode), 0);
 	g_free(wholeHtmlCode);
-	char connection[] = "close";
+	connectionHeaderValue = "close"; // Have to close for now implament the other stuff later
 	//int persistent = 0;
-	if(g_strcmp0(connection, "clos") == 0 /*|| inactivity í 30sek || (g_strcmp0("HTTP/1.0") == 0 && ekki keep-alive)*/ )
+	if(g_strcmp0(connectionHeaderValue, "close") == 0 /*|| inactivity í 30sek || (g_strcmp0("HTTP/1.0") == 0 && ekki keep-alive)*/ )
 	{	
 	    printf("disconnecting");
 	    shutdown(connfd, SHUT_RDWR);
@@ -103,7 +124,7 @@ int main(int argc, char *argv[]) {
 	    //
 	    //
 	    //á að vera break?
-	    break;
+	    //break;
 	}	
     }
     // Close the connection
