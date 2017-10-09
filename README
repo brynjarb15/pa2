@@ -24,3 +24,13 @@ Depending on the value of the connection header field and the time of inactivity
 either persitent or closed. If the value is closed, the time of inactivity is 30 seconds or we recieve HTTP/1.0 without a 
 keep-alive connection then the connections will be closed but open for a new connection. If none of that applies then the 
 connection will be persistent. 
+
+Bibliography
+Time stamp:
+https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
+
+Setsockopt:
+https://stackoverflow.com/questions/4181784/how-to-set-socket-timeout-in-c-when-making-multiple-connections
+
+recv:
+http://man7.org/linux/man-pages/man2/recv.2.html
