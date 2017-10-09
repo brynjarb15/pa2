@@ -33,11 +33,9 @@ void logToFile(char* ipNumber, char* clientPort, char* requestMethod, char* requ
 }
 
 
-
-
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        // TODO: ERROR stuff
+        // If there is no port the server can't run so we close
         printf("The port must be a argument \n");
 	return -1;
     }
@@ -65,7 +63,7 @@ int main(int argc, char *argv[]) {
 
     int connfd;
     for (;;) {
-	printf("beging of for loop\n");
+	printf("Waiting for connection \n");
     	// We first have to accept a TCP connection, connfd is a fresh
         // handle dedicated to this connection.
         socklen_t len = (socklen_t) sizeof(client);
@@ -88,7 +86,8 @@ int main(int argc, char *argv[]) {
 		}
 		memset(message, 0, sizeof message);
 		ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
-		if(n == 0) // http://man7.org/linux/man-pages/man2/recv.2.html
+		// Info about recv from here http://man7.org/linux/man-pages/man2/recv.2.html
+		if(n == 0) 
 		{
 			printf("the other end has shutdown so we quit \n");
 			close(connfd);
@@ -101,7 +100,6 @@ int main(int argc, char *argv[]) {
                         break;
 		}
 		message[n] = '\0';
-		fprintf(stdout, "Received:\n%s\n", message);
 		
 		// Split up the string at " \r\n"
 		char** messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
@@ -119,7 +117,7 @@ int main(int argc, char *argv[]) {
 		char* endOfHtml = "</p></body></html>\n";
 		char* startOfUrl = "http://";
 		
-		gchar* wholeHtmlCode;
+		gchar* wholeHtmlCode = NULL;
 		char portNumber[20];
 		sprintf(portNumber, "%d", portNumberFromClient);
 		char url[200];
@@ -127,81 +125,87 @@ int main(int argc, char *argv[]) {
 		char* connectionHeaderValue = NULL;
 		char* hostHeaderValue = NULL;
 		char* next = "init";
-		GTimer* timer;
-		for(int i = 0; next!= NULL; i++) {
-			//minnisleki???
-			if (g_strcmp0(g_ascii_strdown(next, strlen(next)), "connection:") == 0) {
-				connectionHeaderValue = messageSplit[i+1];
+		if(g_strcmp0(requestMethod,"GET") == 0 || g_strcmp0(requestMethod,"HEAD") == 0 || g_strcmp0(requestMethod,"POST") == 0)
+                {
+			for(int i = 0; next!= NULL; i++) {
+				gchar* nextLower = g_ascii_strdown(next, strlen(next));
+				if (g_strcmp0(nextLower, "connection:") == 0) {
+					connectionHeaderValue = messageSplit[i+1];
+				}
+				
+				if (g_strcmp0(nextLower, "host:") == 0) {
+					hostHeaderValue = messageSplit[i+1];
+				}
+				next = messageSplit[i+1];
+				g_free(nextLower);
 			}
-			if (g_strcmp0(g_ascii_strdown(next, strlen(next)), "host:") == 0) {
-				hostHeaderValue = messageSplit[i+1];
+			if (connectionHeaderValue == NULL) {
+				printf("Connection header was not found, error stuff\n");
 			}
-			next = messageSplit[i+1];
-		}
-		if (connectionHeaderValue == NULL) {
-			printf("Connection header was not found, error stuff\n");
-		}
-		if (hostHeaderValue == NULL) {
-			printf("Host header was not found, error stuff\n");
-		}
+			if (hostHeaderValue == NULL) {
+				printf("Host header was not found, error stuff\n");
+			}
 
-		// Make the url out of the the 3 parts
-		strcpy(url, startOfUrl);
-		strcat(url, hostHeaderValue);
-		strcat(url, urlRest);
-		//The status code and header of GET POST and HEAD of the request sent back successfully
-		statusCode = "200 OK";
-		firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
-		header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
-		
-		//Checking what kind of request method to handle
-		//
-		//In a get request the html page displays the url of the requested page and the IP 
-		//address and port number of the requesting client
-		if(g_strcmp0(requestMethod,"GET") == 0)
-		{
-		    //favicon is not processed 
-		    if(g_strcmp0(urlRest ,"/favicon.ico") == 0)
-		    {
-			statusCode = "404 Not Found";
+			// Make the url out of the the 3 parts
+			strcpy(url, startOfUrl);
+			strcat(url, hostHeaderValue);
+			strcat(url, urlRest);
+			//The status code and header of GET POST and HEAD of the request sent back successfully
+			statusCode = "200 OK";
 			firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
 			header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
-			wholeHtmlCode = g_strconcat(header, "There is no favicon.ico in this server", NULL);
-		    }
-		    else
-		    {
-			wholeHtmlCode = g_strconcat(header, startOfHtml, url, " ",  
-							ipNumberFromClient, ":", portNumber, endOfHtml, NULL);
-		    }
-		}
-		//In a Head request, only the header is returned and nothing is displayed
-		else if(g_strcmp0(requestMethod,"HEAD") == 0)
-		{
-		    wholeHtmlCode = g_strconcat(header, NULL);
-		}
-		//in a post request the html page displays the url of the requested page, the IP address and port number of the requesting client
-		//and the data in the body of the request.
-		else if(g_strcmp0(requestMethod, "POST") == 0)
-		{
-		    char** split = g_strsplit(message, "\r", -1);
-		    char* next = "init";
-		    char* body = NULL;
-		    //all of the data gotten from the body
-		    for(int i = -1; next != NULL; i++)
-		    {
-			if(g_strcmp0(next, "\n") == 0 && split[i+1] != NULL)
+			
+			//Checking what kind of request method to handle
+			//
+			//In a get request the html page displays the url of the requested page and the IP 
+			//address and port number of the requesting client
+			if(g_strcmp0(requestMethod,"GET") == 0)
 			{
-			   body = split[i+1];
+			    //favicon is not processed 
+			    if(g_strcmp0(urlRest ,"/favicon.ico") == 0)
+			    {
+				// Free up memory so we can use them again
+				g_free(firstLineOfHeader);
+				g_free(header);
+				statusCode = "404 Not Found";
+				firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
+				header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
+				wholeHtmlCode = g_strconcat(header, "There is no favicon.ico in this server", NULL);
+			    }
+			    else
+			    {
+				wholeHtmlCode = g_strconcat(header, startOfHtml, url, " ",  
+								ipNumberFromClient, ":", portNumber, endOfHtml, NULL);
+			    }
 			}
-			next = split[i+1];
-		    }
-		    wholeHtmlCode = g_strconcat(header, startOfHtml, startOfUrl, hostHeaderValue, urlRest, " ", 
+			//In a Head request, only the header is returned and nothing is displayed
+			else if(g_strcmp0(requestMethod,"HEAD") == 0)
+			{
+			    wholeHtmlCode = g_strconcat(header, NULL);
+			}
+			//in a post request the html page displays the url of the requested page, the IP address and port number of the requesting client
+			//and the data in the body of the request.
+			else if(g_strcmp0(requestMethod, "POST") == 0)
+			{
+			    char** split = g_strsplit(message, "\r", -1);
+			    char* next = "init";
+			    char* body = NULL;
+			    //all of the data gotten from the body
+			    for(int i = -1; next != NULL; i++)
+			    {
+				if(g_strcmp0(next, "\n") == 0 && split[i+1] != NULL)
+				{
+				   body = split[i+1];
+				}
+				next = split[i+1];
+			    }
+			    wholeHtmlCode = g_strconcat(header, startOfHtml, startOfUrl, hostHeaderValue, urlRest, " ", 
 							ipNumberFromClient, ":", portNumber, body, endOfHtml, NULL);
-		    g_strfreev(split);
+		    	    g_strfreev(split);
+			}
 		}
 		else
 		{
-		    printf("error! A right request method was not given");
 		    statusCode = "400 Bad Request";
                     firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
                     header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
@@ -213,7 +217,6 @@ int main(int argc, char *argv[]) {
                 //timestamp: <client ip>:<client port> <request method><requested URL> : <response code>
                 logToFile(ipNumberFromClient, portNumber, requestMethod, url, statusCode);
 		
-		//timer = g_timer_new();
 		
 		
 		// We send the wholeHtmlCode constructed above
@@ -223,17 +226,18 @@ int main(int argc, char *argv[]) {
 		g_free(wholeHtmlCode);
 		g_free(firstLineOfHeader);
 		g_free(header);
-		//connectionHeaderValue = "close"; // Have to close for now implament the other stuff later
-		if(g_strcmp0(g_ascii_strdown(connectionHeaderValue, strlen(connectionHeaderValue)), "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0 )
+		gchar* headerValueLower = g_ascii_strdown(connectionHeaderValue, strlen(connectionHeaderValue));
+		if(g_strcmp0(headerValueLower, "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0 )
 		{
+		    g_free(headerValueLower);
 		    g_strfreev(messageSplit);
 		    printf("The connection is not persistent so the connection will be closed\n");
-		    //shutdown(connfd, SHUT_RDWR);
 		    close(connfd);
 		    break;
 		}
 		printf("the connections is persistent so it wont close\n");
 		g_strfreev(messageSplit);
+		g_free(headerValueLower);
     	}
     }
     // Close the connection
