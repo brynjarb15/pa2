@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
             memset(message, 0, sizeof message);
             // Info about recv from here http://man7.org/linux/man-pages/man2/recv.2.html
             ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
-            if (n == 0) {
+	    if (n == 0) {
                 printf("the other end has shutdown so we quit \n");
                 close(connfd);
                 break;
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
                 break;
             }
             message[n] = '\0';
-
+            printf("Connection established\n");
             // Split up the string at " \r\n"
             char **messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
             gchar *requestMethod = messageSplit[0];					   // e.g. GET
@@ -104,13 +104,13 @@ int main(int argc, char *argv[]) {
             char *httpRequestType = messageSplit[2];				   // e.g. HTTP/1.1
             char *statusCode;
             gchar *firstLineOfHeader;
-            char *contentTypeHeader = "Content-Type: text/html\n";
-            char *endOfHeders = "\n";
+            char *contentTypeHeader = "Content-Type: text/html\r\n";
+            char *endOfHeders = "\r\n";
             gchar *header;
 
             //first and last part of html we send
             char *startOfHtml = "<!doctype html><body><p>";
-            char *endOfHtml = "</p></body></html>\n";
+            char *endOfHtml = "</p></body></html>\r\n";
             char *startOfUrl = "http://";
 
             gchar *wholeHtmlCode = NULL;
@@ -136,10 +136,11 @@ int main(int argc, char *argv[]) {
                     g_free(nextLower);
                 }
                 if (connectionHeaderValue == NULL) {
-                    printf("Connection header was not found, error stuff\n");
+                    printf("Connection header was not found");
                 }
                 if (hostHeaderValue == NULL) {
-                    printf("Host header was not found, error stuff\n");
+                    printf("Host header was not found");
+		    break;
                 }
 
                 // Make the url out of the the 3 parts
@@ -148,7 +149,7 @@ int main(int argc, char *argv[]) {
                 strcat(url, urlRest);
                 //The status code and header of GET POST and HEAD of the request sent back successfully
                 statusCode = "200 OK";
-                firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
+                firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
                 header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
 
                 //Checking what kind of request method to handle
@@ -162,7 +163,7 @@ int main(int argc, char *argv[]) {
                         g_free(firstLineOfHeader);
                         g_free(header);
                         statusCode = "404 Not Found";
-                        firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
+                        firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
                         header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
                         wholeHtmlCode = g_strconcat(header, "There is no favicon.ico in this server", NULL);
                     }
@@ -194,8 +195,9 @@ int main(int argc, char *argv[]) {
                 }
             }
             else {
+                requestMethod = "UNKNOWN";
                 statusCode = "400 Bad Request";
-                firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\n", NULL);
+                firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
                 header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
                 wholeHtmlCode = g_strconcat(header, "This service only supports GET, HEAD and POST", NULL);
                 // Do this so the connection will be closed after the error message has been sent
@@ -229,6 +231,6 @@ int main(int argc, char *argv[]) {
     shutdown(connfd, SHUT_RDWR);
     close(connfd);
 
-    printf("end of file\n");
+    printf("Server has been closed\n");
     return 0;
 }
