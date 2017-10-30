@@ -70,31 +70,9 @@ int main(int argc, char *argv[]) {
         connfd = accept(sockfd, (struct sockaddr *)&client, &len);
         char *ipNumberFromClient = inet_ntoa(client.sin_addr);
         int portNumberFromClient = ntohs(client.sin_port);
-        while (1337) {
-            // Some ideas gotten here https://www.freebsd.org/cgi/man.cgi?query=setsockopt&sektion=2
-            // Set up setsockopt which cuts the connection after given time
-            // in our case 30 sec.
-            struct timeval timeout;
-            // Set how many seconds before timeout
-            timeout.tv_sec = 30; 
-            // And how many microseconds
-            timeout.tv_usec = 0;
-            if (setsockopt(connfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
-                printf("setsockopt failed\n");
-            }
             memset(message, 0, sizeof message);
             // Info about recv from here http://man7.org/linux/man-pages/man2/recv.2.html
             ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
-	    if (n == 0) {
-                printf("the other end has shutdown so we quit \n");
-                close(connfd);
-                break;
-            }
-            else if (n < 0) {
-                printf("There was a timeout\n");
-                close(connfd);
-                break;
-            }
             message[n] = '\0';
             printf("Connection established\n");
             // Split up the string at " \r\n"
@@ -140,7 +118,7 @@ int main(int argc, char *argv[]) {
                 }
                 if (hostHeaderValue == NULL) {
                     printf("Host header was not found");
-		    break;
+		    continue;
                 }
 
                 // Make the url out of the the 3 parts
@@ -196,7 +174,7 @@ int main(int argc, char *argv[]) {
             }
             else {
                 requestMethod = "UNKNOWN";
-                statusCode = "400 Bad Request";
+                statusCode = "501 Not Implemented";
                 firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
                 header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
                 wholeHtmlCode = g_strconcat(header, "This service only supports GET, HEAD and POST", NULL);
@@ -215,17 +193,19 @@ int main(int argc, char *argv[]) {
             g_free(firstLineOfHeader);
             g_free(header);
             gchar *headerValueLower = g_ascii_strdown(connectionHeaderValue, strlen(connectionHeaderValue));
-            if (g_strcmp0(headerValueLower, "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0) {
+            //headerValueLower = "close"; // ------------Þetta á ekki að vera hérna----------------------------
+	    if (true || g_strcmp0(headerValueLower, "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0) {
                 g_free(headerValueLower);
                 g_strfreev(messageSplit);
                 printf("The connection is not persistent so the connection will be closed\n");
+		shutdown(connfd, SHUT_RDWR);
                 close(connfd);
-                break;
+                continue;
             }
             printf("the connections is persistent so it wont close\n");
             g_strfreev(messageSplit);
             g_free(headerValueLower);
-        }
+        
     }
     // Close the connection
     shutdown(connfd, SHUT_RDWR);
