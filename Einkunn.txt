@@ -1,0 +1,34 @@
+ Q1 : Does not conform to requested folder structure (0 point); 
+ Q2 : 2. Good code structure/documentation. (2 point); 
+ Q3 : 3. Make compiles the project. (2 points); 
+ Q4 : 4. No warnings detected. (2 points) ; 
+ Q5 : 5. Did not crash, no memory definitely lost, no memory reachable, no errors. (3 points); 
+ Q6.1 : 6.1. HTTPConnectionPool(host='127.0.0.1', port=35007): Read timed out. (5 points); 
+ Q6.2 : 6.2. received reply, HTTPConnectionPool(host='127.0.0.1', port=35007): Read timed out. (1 points); 
+ Q6.3 : 6.3. HTTPConnectionPool(host='127.0.0.1', port=35007): Read timed out. (0 points); 
+ Q6.4 : 6.4. 
+	PUT status 400 wrong, expected on of [501] (see rfc7231, 6.6.1), 
+	DELETE status 400 wrong, expected on of [501] (see rfc7231, 6.6.1), 
+	CONNECT status 400 wrong, expected on of [501] (see rfc7231, 6.6.1), 
+	OPTIONS status 400 wrong, expected on of [501] (see rfc7231, 6.6.1), 
+	TRACE status 400 wrong, expected on of [501] (see rfc7231, 6.6.1), 
+	NONSENSE status 400 wrong, expected on of [501] (see rfc7231, 6.6.1), 
+	all failed. (0 points); 
+ Q7 : 7. Attempts to implement timeout with setsockopt. Failed with HTTPConnectionPool(host='127.0.0.1', port=35007): Read timed out.keep-alive does not seem to be supported. (0 points); 
+ Q8 : 8. No parallelization (0 points); 
+ Q9 : 9. No answer given, regarding fairness. (0 points).; 
+ Total: 15 Points; Additional comments: No comment."
+ 
+ 
+ 1: 	0	1 ættum að getað reddað þessu
+ 2:		2	2
+ 3:		2	2
+ 4: 	2	2
+ 5:		3	3
+ 6.1:	5	5
+ 6.2:	1	3
+ 6.3:	0	5
+ 6.4:	0	2 þetta ætti að vera komið
+ 7:		0	10
+ 8:		0	15
+ 9bonus:0	5
