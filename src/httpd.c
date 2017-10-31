@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     int portNumberFromClient;
     for (;;)
     {
-	printf("Start of for loop\n");
+//	printf("Start of for loop\n");
         //printf("Waiting for connection \n");
         // We first have to accept a TCP connection, connfd is a fresh
         // handle dedicated to this connection
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
         }
         else if (pollRet > 0)
         {
-	    printf("pollRet > 0\n");
+//	    printf("pollRet > 0\n");
             if (fds[0].revents & POLLIN)
             {
                 // If this is true then there is a new POLLIN event
@@ -136,6 +136,7 @@ int main(int argc, char *argv[])
                     ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
                     message[n] = '\0';
                     printf("New recv\n");
+		    //printf(" with message: |%s|\n", message);
                     char **messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
                     gchar *requestMethod = messageSplit[0];                    // e.g. GET
                     char *urlRest = messageSplit[1];                           // e.g. /djammid
@@ -145,7 +146,7 @@ int main(int argc, char *argv[])
                     char *contentTypeHeader = "Content-Type: text/html\r\n";
                     char *endOfHeders = "\r\n";
                     gchar *header;
-printf("1\n");
+//printf("1\n");
                     //first and last part of html we send
                     char *startOfHtml = "<!doctype html><body><p>";
                     char *endOfHtml = "</p></body></html>\r\n";
@@ -158,10 +159,16 @@ printf("1\n");
                     char *connectionHeaderValue = NULL;
                     char *hostHeaderValue = NULL;
  printf("---- %s\n", requestMethod);
+		    if(requestMethod == NULL) {
+			printf("requestMethod was Null\n");
+		//	requestMethod = "tomt";
+		    }
+		    printf("111\n");
 	            char *next = "init";
                     if (g_strcmp0(requestMethod, "GET") == 0 || g_strcmp0(requestMethod, "HEAD") == 0 ||
                         g_strcmp0(requestMethod, "POST") == 0)
                     {
+			printf("222\n");
                         for (int i = 0; next != NULL; i++)
                         {
                             gchar *nextLower = g_ascii_strdown(next, strlen(next));
@@ -187,6 +194,7 @@ printf("1\n");
                             printf("Host header was not found\n");
                             continue;
                         }
+printf("1\n");
                         // Make the url out of the the 3 parts
                         strcpy(url, startOfUrl);
                         strcat(url, hostHeaderValue);
@@ -216,8 +224,18 @@ printf("1\n");
                             }
                             else
                             {
-                                wholeHtmlCode = g_strconcat(header, startOfHtml, url, " ",
+				gchar* body = g_strconcat(startOfHtml, url, " ",
                                                             ipNumberFromClient, ":", portNumber, endOfHtml, NULL);
+				int bodyLength = strlen(body);
+				char bodyLengthInChar[10];
+                                sprintf(bodyLengthInChar, "%d",bodyLength);
+				char contentLengthtTypeHeader[100];
+                 	        strcpy(contentLengthtTypeHeader, "Content-Length: ");
+                       		strcat(contentLengthtTypeHeader, bodyLengthInChar);
+                        	strcat(contentLengthtTypeHeader, "\r\n"); 
+				header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader, contentLengthtTypeHeader, endOfHeders, NULL);
+                                wholeHtmlCode = g_strconcat(header, body, NULL);
+				g_free(body);
                             }
                         }
                         //In a Head request, only the header is returned and nothing is displayed
@@ -248,6 +266,7 @@ printf("1\n");
                     }
                     else
                     {
+			printf("requestMethod was not known");
                         requestMethod = "UNKNOWN";
                         statusCode = "501 Not Implemented";
 			char* msg = "This service only supports GET, HEAD and POST";
