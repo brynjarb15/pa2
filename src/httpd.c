@@ -11,6 +11,7 @@
 #include <glib/gprintf.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/poll.h>
 
 typedef enum { false,
                true } bool;
@@ -62,14 +63,49 @@ int main(int argc, char *argv[]) {
     listen(sockfd, 1);
 
     int connfd;
+    int numberOfFds = 1;
+    struct pollfd fds[300]; // getum max tekið við 300 tengingum í einu
+    int timeout = 3000;
+    // Nr. 0 hlustar á sockfd sem sér um að láta vita af nýjum tengingum
+    fds[0].fd = sockfd;
+    fds[0].events = POLLIN; // POLLIN means somthing is beeing sent to the fd
+    char *ipNumberFromClient;
+    int portNumberFromClient;
     for (;;) {
-        printf("Waiting for connection \n");
+        //printf("Waiting for connection \n");
         // We first have to accept a TCP connection, connfd is a fresh
-        // handle dedicated to this connection.
+        // handle dedicated to this connection
         socklen_t len = (socklen_t)sizeof(client);
-        connfd = accept(sockfd, (struct sockaddr *)&client, &len);
-        char *ipNumberFromClient = inet_ntoa(client.sin_addr);
-        int portNumberFromClient = ntohs(client.sin_port);
+	//Call poll
+	int pollRet = poll(fds, numberOfFds, timeout);
+	if(pollRet < 0) {
+	    printf("Poll returned error closing the progam \n");
+	    return -1;
+        } else if(pollRet == 0) {
+	    printf("Timeout\n");
+	}else if(pollRet > 0) {
+	    if(fds[0].revents & POLLIN) { // If this is true then there is a new POLLIN event
+		//We make a new connection
+		connfd = accept(sockfd, (struct sockaddr *)&client, &len);
+		if(connfd < 0){
+		    printf("connfd < 0 error\n");
+		    break;//???
+		} else if(connfd == 0) {
+		    printf("connfd == 0 veit ekki hvað það þýðir \n");
+		} else { // connfd > 0 þannig allt er í góðu
+		    printf("New connection established\n");
+		    fds[numberOfFds].fd = connfd;
+		    fds[numberOfFds].events = POLLIN;
+		    numberOfFds++;
+		    ipNumberFromClient = inet_ntoa(client.sin_addr);
+                    portNumberFromClient = ntohs(client.sin_port);
+		}
+
+	    }
+	}
+        //connfd = accept(sockfd, (struct sockaddr *)&client, &len);
+        //char *ipNumberFromClient = inet_ntoa(client.sin_addr);
+        //int portNumberFromClient = ntohs(client.sin_port);
         memset(message, 0, sizeof message);
         // Info about recv from here http://man7.org/linux/man-pages/man2/recv.2.html
         ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
