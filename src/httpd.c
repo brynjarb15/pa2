@@ -134,6 +134,11 @@ int main(int argc, char *argv[])
 		    printf("fds[i].revents &POLLIN == TRUE\n");
                     memset(message, 0, sizeof message);
                     ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
+		    if(n < 0) {
+			//error
+		    } else if(n == 0) {
+			printf("n ==0\n");
+		    } 
                     message[n] = '\0';
                     printf("New recv\n");
 		    //printf(" with message: |%s|\n", message);
