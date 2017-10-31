@@ -100,7 +100,14 @@ int main(int argc, char *argv[]) {
 		    ipNumberFromClient = inet_ntoa(client.sin_addr);
                     portNumberFromClient = ntohs(client.sin_port);
 		}
-
+	    }
+	    for(int i = 1; i < numberOfFds; i++) {
+		if(fds[i].revents & POLLIN) {
+			memset(message, 0, sizeof message);
+			ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
+			message[n] = '\0';
+			
+		}
 	    }
 	}
         //connfd = accept(sockfd, (struct sockaddr *)&client, &len);
