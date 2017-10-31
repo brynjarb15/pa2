@@ -65,16 +65,23 @@ int main(int argc, char *argv[])
     // Before the server can accept messages, it has to listen to the
     // welcome port. A backlog of one connection is allowed.
     listen(sockfd, 1);
-
+    int maxFds = 300;
     int connfd;
     int numberOfFds = 1;
-    struct pollfd fds[300]; // getum max tekið við 300 tengingum í einu
+    struct pollfd fds[maxFds]; // getum max tekið við 300 tengingum í einu
     int timeout = 15000;
     // Nr. 0 hlustar á sockfd sem sér um að láta vita af nýjum tengingum
     fds[0].fd = sockfd;
     fds[0].events = POLLIN; // POLLIN means somthing is beeing sent to the fd
+
     char *ipNumberFromClient;
     int portNumberFromClient;
+
+    char* ipNumbersForClients[maxFds];
+    int portNumbersForClients[maxFds];
+    ipNumbersForClients[0] = "Shoul not be used";
+    portNumbersForClients[0] = 42; //Should not be used either
+//    printf("ip: %s \n", ipNumbersForClients[0]);
     for (;;)
     {
         printf("Start of for loop\n");
@@ -112,24 +119,24 @@ int main(int argc, char *argv[])
                     printf("connfd < 0 error connfd: %d\n", connfd);
                     break; //???
                 }
-                else if (connfd == 0)
-                {
-                    printf("connfd == 0 veit ekki hvað það þýðir \n");
-                }
                 else
                 { // connfd > 0 þannig allt er í góðu
                     printf("New connection established\n");
                     fds[numberOfFds].fd = connfd;
                     fds[numberOfFds].events = POLLIN;
-                    numberOfFds++;
-                    ipNumberFromClient = inet_ntoa(client.sin_addr);
-                    portNumberFromClient = ntohs(client.sin_port);
+		    ipNumbersForClients[numberOfFds] = inet_ntoa(client.sin_addr);
+		    portNumbersForClients[numberOfFds] = ntohs(client.sin_port);
+		    numberOfFds++;
+//                    ipNumberFromClient = inet_ntoa(client.sin_addr);
+//                    portNumberFromClient = ntohs(client.sin_port);
                 }
             }
             for (int i = 1; i < numberOfFds; i++)
             {
                 if (fds[i].revents & POLLIN)
                 {
+		    ipNumberFromClient = ipNumbersForClients[i];
+                    portNumberFromClient = portNumbersForClients[i];
                     connfd = fds[i].fd; // connfd is the fd of the current fds
                     printf("fds[i].revents &POLLIN == TRUE\n");
                     memset(message, 0, sizeof message);
@@ -146,6 +153,8 @@ int main(int argc, char *argv[])
 			for(int j = i; j < numberOfFds; j++) 
 			{
 			    fds[j].fd = fds[j+1].fd;
+			    ipNumbersForClients[j] = ipNumbersForClients[j+1];
+			    portNumbersForClients[j] = portNumbersForClients[j+1];
 			}
 			numberOfFds--;
                     }
@@ -153,7 +162,6 @@ int main(int argc, char *argv[])
                     {
                         message[n] = '\0';
                         printf("New recv\n");
-                        //printf(" with message: |%s|\n", message);
                         char **messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
                         gchar *requestMethod = messageSplit[0];                    // e.g. GET
                         char *urlRest = messageSplit[1];                           // e.g. /djammid
@@ -163,7 +171,6 @@ int main(int argc, char *argv[])
                         char *contentTypeHeader = "Content-Type: text/html\r\n";
                         char *endOfHeders = "\r\n";
                         gchar *header;
-                        //printf("1\n");
                         //first and last part of html we send
                         char *startOfHtml = "<!doctype html><body><p>";
                         char *endOfHtml = "</p></body></html>\r\n";
@@ -178,7 +185,7 @@ int main(int argc, char *argv[])
                         if (requestMethod == NULL)
                         {
                             printf("requestMethod was Null\n");
-                            requestMethod = "UNKNOWN"; // Ef þetta keyrist þá fer þetta í UNKNOWN
+                            requestMethod = "UNKNOWN"; // This makes it go to UNKNOWN
                         }
                         char *next = "init";
                         if (g_strcmp0(requestMethod, "GET") == 0 || g_strcmp0(requestMethod, "HEAD") == 0 ||
@@ -216,7 +223,16 @@ int main(int argc, char *argv[])
                             //The status code and header of GET POST and HEAD of the request sent back successfully
                             statusCode = "200 OK";
                             firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
-                            char *conectionTypeHeader = "Connection: close\r\n";
+                            char *conectionTypeHeader;// = "Connection: keep-alive\r\n";
+			    gchar *headerValueLower = g_ascii_strdown(connectionHeaderValue, strlen(connectionHeaderValue));
+			    // If this is true then connection header is set to close else keep-alive
+			    if(g_strcmp0(headerValueLower, "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0) {
+			        printf("Connection header was set to close\n");
+			        conectionTypeHeader = "Connection: close\r\n";
+			    } else {
+				printf("Connection header was set to keep-alive\n");
+				conectionTypeHeader = "Connection: keep-alive\r\n";
+			    }
                             //			char* contentLengthtTypeHeader = "Content-Length: 80\r\n";
                             header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader, endOfHeders, NULL);
                             //Checking what kind of request method to handle
@@ -298,6 +314,7 @@ int main(int argc, char *argv[])
                             printf("requestMethod was not known");
                             requestMethod = "UNKNOWN";
                             statusCode = "501 Not Implemented";
+			    char *conectionHeader = "Connection: close\r\n";
                             char *msg = "This service only supports GET, HEAD and POST";
                             int lengthOfMsg = strlen(msg);
                             char lengthInChar[10];
@@ -307,7 +324,8 @@ int main(int argc, char *argv[])
                             strcat(contentLengthtTypeHeader, lengthInChar);
                             strcat(contentLengthtTypeHeader, "\r\n");
                             firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
-                            header = g_strconcat(firstLineOfHeader, contentTypeHeader, contentLengthtTypeHeader, endOfHeders, NULL);
+                            header = g_strconcat(firstLineOfHeader, contentTypeHeader, contentLengthtTypeHeader, 
+                                                     conectionHeader, endOfHeders, NULL);
                             wholeHtmlCode = g_strconcat(header, "This service only supports GET, HEAD and POST", NULL);
                             // Do this so the connection will be closed after the error message has been sent
                             connectionHeaderValue = "close";
@@ -322,6 +340,7 @@ int main(int argc, char *argv[])
                         g_free(wholeHtmlCode);
                         g_free(firstLineOfHeader);
                         g_free(header);
+			// mætti ég eyða næstu 11 línum????
                         gchar *headerValueLower = g_ascii_strdown(connectionHeaderValue, strlen(connectionHeaderValue));
                         if (g_strcmp0(headerValueLower, "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0)
                         {
