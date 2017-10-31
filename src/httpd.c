@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
     int connfd;
     int numberOfFds = 1;
     struct pollfd fds[300]; // getum max tekið við 300 tengingum í einu
-    int timeout = 3000;
+    int timeout = 15000;
     // Nr. 0 hlustar á sockfd sem sér um að láta vita af nýjum tengingum
     fds[0].fd = sockfd;
     fds[0].events = POLLIN; // POLLIN means somthing is beeing sent to the fd
@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
     int portNumberFromClient;
     for (;;)
     {
+	printf("Start of for loop\n");
         //printf("Waiting for connection \n");
         // We first have to accept a TCP connection, connfd is a fresh
         // handle dedicated to this connection
@@ -91,9 +92,16 @@ int main(int argc, char *argv[])
         else if (pollRet == 0)
         {
             printf("Timeout\n");
+	    for(int i = 1; i < numberOfFds; i++) 
+	    {
+		shutdown(fds[i].fd, SHUT_RDWR);
+                close(fds[i].fd);
+	    }
+	    numberOfFds = 1;
         }
         else if (pollRet > 0)
         {
+	    printf("pollRet > 0\n");
             if (fds[0].revents & POLLIN)
             {
                 // If this is true then there is a new POLLIN event
@@ -122,6 +130,8 @@ int main(int argc, char *argv[])
             {
                 if (fds[i].revents & POLLIN)
                 {
+		    connfd = fds[i].fd; // connfd is the fd of the current fds
+		    printf("fds[i].revents &POLLIN == TRUE\n");
                     memset(message, 0, sizeof message);
                     ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
                     message[n] = '\0';
@@ -169,13 +179,13 @@ int main(int argc, char *argv[])
                         if (connectionHeaderValue == NULL)
                         {
                             printf("Connection header was not found");
+			    connectionHeaderValue = "NotFound"; // do this because we use this later so this can't be null
                         }
                         if (hostHeaderValue == NULL)
                         {
                             printf("Host header was not found");
                             continue;
                         }
-
                         // Make the url out of the the 3 parts
                         strcpy(url, startOfUrl);
                         strcat(url, hostHeaderValue);
@@ -183,8 +193,9 @@ int main(int argc, char *argv[])
                         //The status code and header of GET POST and HEAD of the request sent back successfully
                         statusCode = "200 OK";
                         firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
-                        header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
-
+			char* conectionTypeHeader = "Connection: close\r\n";
+                        header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader, endOfHeders, NULL);
+			
                         //Checking what kind of request method to handle
                         //
                         //In a get request the html page displays the url of the requested page and the IP
@@ -256,14 +267,14 @@ int main(int argc, char *argv[])
                     g_free(firstLineOfHeader);
                     g_free(header);
                     gchar *headerValueLower = g_ascii_strdown(connectionHeaderValue, strlen(connectionHeaderValue));
-                    //headerValueLower = "close"; // ------------Þetta á ekki að vera hérna----------------------------
-                    if (true || g_strcmp0(headerValueLower, "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0)
+                    if ( g_strcmp0(headerValueLower, "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0)
                     {
                         g_free(headerValueLower);
                         g_strfreev(messageSplit);
-                        printf("The connection is not persistent so the connection will be closed\n");
-                        shutdown(connfd, SHUT_RDWR);
-                        close(connfd);
+                        //printf("The connection is not persistent so the connection will be closed\n");
+                        //shutdown(connfd, SHUT_RDWR);
+                        //close(connfd);
+			//numberOfFds--;
                         continue;
                     }
                     printf("the connections is persistent so it wont close\n");
