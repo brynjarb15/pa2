@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     int portNumberFromClient;
     for (;;)
     {
-        //	printf("Start of for loop\n");
+        printf("Start of for loop\n");
         //printf("Waiting for connection \n");
         // We first have to accept a TCP connection, connfd is a fresh
         // handle dedicated to this connection
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
         }
         else if (pollRet > 0)
         {
-            //	    printf("pollRet > 0\n");
+            printf("pollRet > 0\n");
             if (fds[0].revents & POLLIN)
             {
                 // If this is true then there is a new POLLIN event
@@ -140,9 +140,14 @@ int main(int argc, char *argv[])
                     }
                     else if (n == 0)
                     {
-                        printf("n ==0\n");
+                        printf("n == 0\n");
                         shutdown(fds[i].fd, SHUT_RDWR);
-                        close(fds[i]);
+                        close(fds[i].fd);
+			for(int j = i; j < numberOfFds; j++) 
+			{
+			    fds[j].fd = fds[j+1].fd;
+			}
+			numberOfFds--;
                     }
                     else
                     {
@@ -170,18 +175,15 @@ int main(int argc, char *argv[])
                         //the connection and header is gotten from the array that contains the whole message
                         char *connectionHeaderValue = NULL;
                         char *hostHeaderValue = NULL;
-                        printf("---- %s\n", requestMethod);
                         if (requestMethod == NULL)
                         {
                             printf("requestMethod was Null\n");
-                            //	requestMethod = "tomt";
+                            requestMethod = "UNKNOWN"; // Ef þetta keyrist þá fer þetta í UNKNOWN
                         }
-                        printf("111\n");
                         char *next = "init";
                         if (g_strcmp0(requestMethod, "GET") == 0 || g_strcmp0(requestMethod, "HEAD") == 0 ||
                             g_strcmp0(requestMethod, "POST") == 0)
                         {
-                            printf("222\n");
                             for (int i = 0; next != NULL; i++)
                             {
                                 gchar *nextLower = g_ascii_strdown(next, strlen(next));
@@ -207,7 +209,6 @@ int main(int argc, char *argv[])
                                 printf("Host header was not found\n");
                                 continue;
                             }
-                            printf("1\n");
                             // Make the url out of the the 3 parts
                             strcpy(url, startOfUrl);
                             strcat(url, hostHeaderValue);
@@ -222,7 +223,7 @@ int main(int argc, char *argv[])
                             //
                             //In a get request the html page displays the url of the requested page and the IP
                             //address and port number of the requesting client
-                            if (g_strcmp0(requestMethod, "GET") == 0)
+                            if (g_strcmp0(requestMethod, "GET") == 0 || g_strcmp0(requestMethod, "HEAD") == 0 )
                             {
                                 //favicon is not processed
                                 if (g_strcmp0(urlRest, "/favicon.ico") == 0)
@@ -246,18 +247,19 @@ int main(int argc, char *argv[])
                                     strcpy(contentLengthtTypeHeader, "Content-Length: ");
                                     strcat(contentLengthtTypeHeader, bodyLengthInChar);
                                     strcat(contentLengthtTypeHeader, "\r\n");
-                                    header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader, contentLengthtTypeHeader, endOfHeders, NULL);
-                                    wholeHtmlCode = g_strconcat(header, body, NULL);
+				    header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader,
+							    contentLengthtTypeHeader, endOfHeders, NULL);
+				    if(g_strcmp0(requestMethod, "GET") == 0 ) {
+					wholeHtmlCode = g_strconcat(header, body, NULL);
+				    } else {  // then we have a HEAD which only returns the headers
+					wholeHtmlCode = g_strconcat(header, NULL);
+				    }
                                     g_free(body);
                                 }
                             }
-                            //In a Head request, only the header is returned and nothing is displayed
-                            else if (g_strcmp0(requestMethod, "HEAD") == 0)
-                            {
-                                wholeHtmlCode = g_strconcat(header, NULL);
-                            }
-                            //in a post request the html page displays the url of the requested page, the IP address and port number of the requesting client
-                            //and the data in the body of the request.
+                            // In a post request the html page displays the url of the requested page,
+                            // the IP address and port number of the requesting client
+                            // and the data in the body of the request.
                             else if (g_strcmp0(requestMethod, "POST") == 0)
                             {
                                 char **split = g_strsplit(message, "\r", -1);
@@ -272,8 +274,22 @@ int main(int argc, char *argv[])
                                     }
                                     next = split[i + 1];
                                 }
-                                wholeHtmlCode = g_strconcat(header, startOfHtml, startOfUrl, hostHeaderValue, urlRest, " ",
-                                                            ipNumberFromClient, ":", portNumber, body, endOfHtml, NULL);
+				gchar *wholeBody = g_strconcat(startOfHtml, url, " ",
+                                                              ipNumberFromClient, ":", portNumber, body, endOfHtml, NULL);		
+				int bodyLength = strlen(wholeBody);
+                                char bodyLengthInChar[10];
+                                sprintf(bodyLengthInChar, "%d", bodyLength);
+                                char contentLengthtTypeHeader[100];
+                                strcpy(contentLengthtTypeHeader, "Content-Length: ");
+                                strcat(contentLengthtTypeHeader, bodyLengthInChar);
+                                strcat(contentLengthtTypeHeader, "\r\n");
+				printf("contentLengthtTypeHeader: %s\n", contentLengthtTypeHeader);
+				header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader, 
+							contentLengthtTypeHeader, endOfHeders, NULL);
+                                wholeHtmlCode = g_strconcat(header, wholeBody, NULL);
+//                                wholeHtmlCode = g_strconcat(header, startOfHtml, startOfUrl, hostHeaderValue, urlRest, " ",
+//                                                            ipNumberFromClient, ":", portNumber, body, endOfHtml, NULL);
+				g_free(wholeBody);
                                 g_strfreev(split);
                             }
                         }
@@ -317,7 +333,7 @@ int main(int argc, char *argv[])
                             //numberOfFds--;
                             continue;
                         }
-                        printf("the connections is persistent so it wont close\n");
+                        //printf("the connections is persistent so it wont close\n");
                         g_strfreev(messageSplit);
                         g_free(headerValueLower);
                     }
