@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
                 connfd = accept(sockfd, (struct sockaddr *)&client, &len);
                 if (connfd < 0)
                 {
-                    printf("connfd < 0 error\n");
+                    printf("connfd < 0 error connfd: %d\n", connfd);
                     break; //???
                 }
                 else if (connfd == 0)
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
                     char *contentTypeHeader = "Content-Type: text/html\r\n";
                     char *endOfHeders = "\r\n";
                     gchar *header;
-
+printf("1\n");
                     //first and last part of html we send
                     char *startOfHtml = "<!doctype html><body><p>";
                     char *endOfHtml = "</p></body></html>\r\n";
@@ -157,7 +157,8 @@ int main(int argc, char *argv[])
                     //the connection and header is gotten from the array that contains the whole message
                     char *connectionHeaderValue = NULL;
                     char *hostHeaderValue = NULL;
-                    char *next = "init";
+ printf("---- %s\n", requestMethod);
+	            char *next = "init";
                     if (g_strcmp0(requestMethod, "GET") == 0 || g_strcmp0(requestMethod, "HEAD") == 0 ||
                         g_strcmp0(requestMethod, "POST") == 0)
                     {
@@ -178,24 +179,24 @@ int main(int argc, char *argv[])
                         }
                         if (connectionHeaderValue == NULL)
                         {
-                            printf("Connection header was not found");
+                            printf("Connection header was not found\n");
 			    connectionHeaderValue = "NotFound"; // do this because we use this later so this can't be null
                         }
                         if (hostHeaderValue == NULL)
                         {
-                            printf("Host header was not found");
+                            printf("Host header was not found\n");
                             continue;
                         }
                         // Make the url out of the the 3 parts
                         strcpy(url, startOfUrl);
                         strcat(url, hostHeaderValue);
                         strcat(url, urlRest);
-                        //The status code and header of GET POST and HEAD of the request sent back successfully
+                        //The status code and header of GET POST and HEAD of the request sent back successfully          
                         statusCode = "200 OK";
                         firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
 			char* conectionTypeHeader = "Connection: close\r\n";
-                        header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader, endOfHeders, NULL);
-			
+//			char* contentLengthtTypeHeader = "Content-Length: 80\r\n";
+                        header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader,endOfHeders, NULL);
                         //Checking what kind of request method to handle
                         //
                         //In a get request the html page displays the url of the requested page and the IP
@@ -249,8 +250,16 @@ int main(int argc, char *argv[])
                     {
                         requestMethod = "UNKNOWN";
                         statusCode = "501 Not Implemented";
+			char* msg = "This service only supports GET, HEAD and POST";
+			int lengthOfMsg = strlen(msg);
+			char lengthInChar[10];
+			sprintf(lengthInChar, "%d", lengthOfMsg);
+			char contentLengthtTypeHeader[100];
+			strcpy(contentLengthtTypeHeader, "Content-Length: ");// 80\r\n";
+			strcat(contentLengthtTypeHeader, lengthInChar);
+			strcat(contentLengthtTypeHeader, "\r\n");
                         firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
-                        header = g_strconcat(firstLineOfHeader, contentTypeHeader, endOfHeders, NULL);
+                        header = g_strconcat(firstLineOfHeader, contentTypeHeader, contentLengthtTypeHeader, endOfHeders, NULL);
                         wholeHtmlCode = g_strconcat(header, "This service only supports GET, HEAD and POST", NULL);
                         // Do this so the connection will be closed after the error message has been sent
                         connectionHeaderValue = "close";
@@ -261,13 +270,12 @@ int main(int argc, char *argv[])
 
                     // We send the wholeHtmlCode constructed above
                     send(connfd, wholeHtmlCode, strlen(wholeHtmlCode), 0);
-
                     // Free memory we don't need anymore
                     g_free(wholeHtmlCode);
                     g_free(firstLineOfHeader);
                     g_free(header);
-                    gchar *headerValueLower = g_ascii_strdown(connectionHeaderValue, strlen(connectionHeaderValue));
-                    if ( g_strcmp0(headerValueLower, "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0)
+                    gchar *headerValueLower = g_ascii_strdown(connectionHeaderValue, strlen(connectionHeaderValue)); 
+           if ( g_strcmp0(headerValueLower, "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0)
                     {
                         g_free(headerValueLower);
                         g_strfreev(messageSplit);
