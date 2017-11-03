@@ -128,17 +128,18 @@ int main(int argc, char *argv[])
                     ipNumbersForClients[numberOfFds] = inet_ntoa(client.sin_addr);
                     portNumbersForClients[numberOfFds] = ntohs(client.sin_port);
                     memset(colorCookies[numberOfFds], '\0', sizeof(colorCookies[numberOfFds]));
-                    strcpy(colorCookies[numberOfFds], " ");
+                    printf("---8\n");
+                    strcpy(colorCookies[numberOfFds], "");
                     numberOfFds++;
-		    printf("finished new connection\n");
+                    printf("finished new connection\n");
                 }
             }
             for (int i = 1; i < numberOfFds; i++)
             {
-printf("---5\n");
+                printf("---5\n");
                 if (fds[i].revents & POLLIN)
                 {
-printf("---6\n");
+                    printf("---6\n");
                     ipNumberFromClient = ipNumbersForClients[i];
                     portNumberFromClient = portNumbersForClients[i];
                     connfd = fds[i].fd; // connfd is the fd of the current fds
@@ -160,15 +161,15 @@ printf("---6\n");
                             fds[j].fd = fds[j + 1].fd;
                             ipNumbersForClients[j] = ipNumbersForClients[j + 1];
                             portNumbersForClients[j] = portNumbersForClients[j + 1];
-printf("----2\n");
-			    memset(colorCookies[j], '\0', sizeof(colorCookies[j]));
-			    strcpy(colorCookies[j], colorCookies[j + 1]);
+                            printf("----2\n");
+                            memset(colorCookies[j], '\0', sizeof(colorCookies[j]));
+                            strcpy(colorCookies[j], colorCookies[j + 1]);
                         }
                         numberOfFds--;
                     }
                     else
                     {
-printf("---4\n");
+                        printf("---4\n");
                         // Get some headers from the message
                         message[n] = '\0';
                         char **messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
@@ -264,8 +265,7 @@ printf("---4\n");
                                     // TODO: Maybe this should not be here because this saves the bg for all websites
                                     if (g_strcmp0(oneArgSplit[0], "bg") == 0)
                                     {
-printf("---1\n");
-                                        //colorCookies[i] = g_strndup(oneArgSplit[1], strlen(oneArgSplit[1]));
+                                        printf("---1\n");
                                         memset(colorCookies[i], '\0', sizeof(colorCookies[i]));
                                         strcpy(colorCookies[i], oneArgSplit[1]);
                                         printf("colorCookie: %s\n", colorCookies[i]);
@@ -386,8 +386,8 @@ printf("---1\n");
                                 wholeHtmlCode = g_strconcat(header, wholeBody, NULL);
                                 g_free(wholeBody);
                                 g_strfreev(split);
-				g_free(header);
-				g_strfreev(urlRestSplit);
+                                g_free(header);
+                                g_strfreev(urlRestSplit);
                             }
                             g_strfreev(allArguments);
                         }
@@ -406,13 +406,13 @@ printf("---1\n");
                             strcat(contentLengthtTypeHeader, lengthInChar);
                             strcat(contentLengthtTypeHeader, "\r\n");
                             firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
-			    //g_free(header);
-                            gchar* unkownHeader = g_strconcat(firstLineOfHeader, contentTypeHeader, contentLengthtTypeHeader,
-                                                 conectionHeader, endOfHeders, NULL);
+                            //g_free(header);
+                            gchar *unkownHeader = g_strconcat(firstLineOfHeader, contentTypeHeader, contentLengthtTypeHeader,
+                                                              conectionHeader, endOfHeders, NULL);
                             wholeHtmlCode = g_strconcat(unkownHeader, "This service only supports GET, HEAD and POST", NULL);
                             // Do this so the connection will be closed after the error message has been sent
                             connectionHeaderValue = "close";
-			    g_free(unkownHeader);
+                            g_free(unkownHeader);
                         }
                         //For each request, a single line is printed to a log file in the format:
                         //timestamp: <client ip>:<client port> <request method><requested URL> : <response code>
@@ -427,7 +427,7 @@ printf("---1\n");
                         g_strfreev(messageSplit);
                     }
                 }
-		printf("---7\n");
+                printf("---7\n");
             }
         }
     }
