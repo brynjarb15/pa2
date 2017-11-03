@@ -398,7 +398,6 @@ int main(int argc, char *argv[])
                             strcat(contentLengthtTypeHeader, lengthInChar);
                             strcat(contentLengthtTypeHeader, "\r\n");
                             firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
-                            g_free(header);
                             header = g_strconcat(firstLineOfHeader, contentTypeHeader, contentLengthtTypeHeader,
                                                  conectionHeader, endOfHeders, NULL);
                             wholeHtmlCode = g_strconcat(header, "This service only supports GET, HEAD and POST", NULL);
