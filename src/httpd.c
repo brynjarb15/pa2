@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     // welcome port. A backlog of one connection is allowed.
     listen(sockfd, 1);
     int connfd;
-    int timeout = 15000; //TODO: þetta ætti að vera 30000
+    int timeout = 30000; //TODO: þetta ætti að vera 30000
     int maxFds = 300;
     struct pollfd fds[maxFds]; // getum max tekið við 300 tengingum í einu
     int numberOfFds = 1;
@@ -155,14 +155,11 @@ int main(int argc, char *argv[])
                         printf("Clinet closed the connection so we close it also\n");
                         shutdown(fds[i].fd, SHUT_RDWR);
                         close(fds[i].fd);
-                        for (int j = i; j < numberOfFds-1; j++)
+                        for (int j = i; j < numberOfFds - 1; j++)
                         {
                             fds[j].fd = fds[j + 1].fd;
                             ipNumbersForClients[j] = ipNumbersForClients[j + 1];
                             portNumbersForClients[j] = portNumbersForClients[j + 1];
-                            printf("----2\n");
-			    printf("[j]: %s\n", colorCookies[j]);
-			    printf("[j+1]: %s\n", colorCookies[j+1]);
                             memset(colorCookies[j], '\0', sizeof(colorCookies[j]));
                             strcpy(colorCookies[j], colorCookies[j + 1]);
                         }
@@ -170,13 +167,12 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
-                        printf("---4\n");
                         // Get some headers from the message
                         message[n] = '\0';
                         char **messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
-                        gchar *requestMethod = messageSplit[0];                    // e.g. GET
-                        char *urlRest = messageSplit[1];                           // e.g. /djammid
-                        char *httpRequestType = messageSplit[2];                   // e.g. HTTP/1.1
+                        gchar *requestMethod = messageSplit[0];					   // e.g. GET
+                        char *urlRest = messageSplit[1];						   // e.g. /djammid
+                        char *httpRequestType = messageSplit[2];				   // e.g. HTTP/1.1
                         char *statusCode;
                         gchar *firstLineOfHeader;
                         // We always return html code so we set the content-type header to text/html
@@ -266,7 +262,6 @@ int main(int argc, char *argv[])
                                     // TODO: Maybe this should not be here because this saves the bg for all websites
                                     if (g_strcmp0(oneArgSplit[0], "bg") == 0)
                                     {
-                                        printf("---1\n");
                                         memset(colorCookies[i], '\0', sizeof(colorCookies[i]));
                                         strcpy(colorCookies[i], oneArgSplit[1]);
                                         printf("colorCookie: %s\n", colorCookies[i]);
