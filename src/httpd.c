@@ -260,7 +260,8 @@ int main(int argc, char *argv[])
                                     if (g_strcmp0(oneArgSplit[0], "bg") == 0)
                                     {
                                         g_free(colorCookies[i]);
-                                        colorCookies[i] = g_strndup(oneArgSplit[1], strlen(oneArgSplit[1]));
+                                        //colorCookies[i] = g_strndup(oneArgSplit[1], strlen(oneArgSplit[1]));
+                                        colorCookies[i] = g_strdup(oneArgSplit[1]);
                                         printf("colorCookie: %s\n", colorCookies[i]);
                                     }
                                     g_strfreev(oneArgSplit);
