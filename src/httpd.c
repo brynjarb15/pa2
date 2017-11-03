@@ -125,6 +125,7 @@ int main(int argc, char *argv[])
                     printf("New connection established\n");
                     fds[numberOfFds].fd = connfd;
                     fds[numberOfFds].events = POLLIN;
+		    fds[numberOfFds].revents = 0;
                     ipNumbersForClients[numberOfFds] = inet_ntoa(client.sin_addr);
                     portNumbersForClients[numberOfFds] = ntohs(client.sin_port);
                     memset(colorCookies[numberOfFds], '\0', sizeof(colorCookies[numberOfFds]));
