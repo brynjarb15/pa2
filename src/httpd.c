@@ -128,7 +128,6 @@ int main(int argc, char *argv[])
                     ipNumbersForClients[numberOfFds] = inet_ntoa(client.sin_addr);
                     portNumbersForClients[numberOfFds] = ntohs(client.sin_port);
                     memset(colorCookies[numberOfFds], '\0', sizeof(colorCookies[numberOfFds]));
-                    printf("---8\n");
                     strcpy(colorCookies[numberOfFds], "");
                     numberOfFds++;
                     printf("finished new connection\n");
@@ -156,12 +155,14 @@ int main(int argc, char *argv[])
                         printf("Clinet closed the connection so we close it also\n");
                         shutdown(fds[i].fd, SHUT_RDWR);
                         close(fds[i].fd);
-                        for (int j = i; j < numberOfFds; j++)
+                        for (int j = i; j < numberOfFds-1; j++)
                         {
                             fds[j].fd = fds[j + 1].fd;
                             ipNumbersForClients[j] = ipNumbersForClients[j + 1];
                             portNumbersForClients[j] = portNumbersForClients[j + 1];
                             printf("----2\n");
+			    printf("[j]: %s\n", colorCookies[j]);
+			    printf("[j+1]: %s\n", colorCookies[j+1]);
                             memset(colorCookies[j], '\0', sizeof(colorCookies[j]));
                             strcpy(colorCookies[j], colorCookies[j + 1]);
                         }
