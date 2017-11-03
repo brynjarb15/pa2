@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 
     char *ipNumbersForClients[maxFds];
     int portNumbersForClients[maxFds];
-    char colorCookies[maxFds];
+    char colorCookies[maxFds][50];
     ipNumbersForClients[0] = "Should not be used";
     portNumbersForClients[0] = 42; //Should not be used either
 
@@ -104,8 +104,6 @@ int main(int argc, char *argv[])
             {
                 shutdown(fds[i].fd, SHUT_RDWR);
                 close(fds[i].fd);
-printf("---3\n");
-                g_free(colorCookies[i]);
             }
             numberOfFds = 1;
         }
@@ -129,7 +127,8 @@ printf("---3\n");
                     fds[numberOfFds].events = POLLIN;
                     ipNumbersForClients[numberOfFds] = inet_ntoa(client.sin_addr);
                     portNumbersForClients[numberOfFds] = ntohs(client.sin_port);
-                    colorCookies[numberOfFds] = g_strdup("");
+                    memset(colorCookies[numberOfFds], '\0', sizeof(colorCookies[numberOfFds]));
+                    strcpy(colorCookies[numberOfFds], "");
                     numberOfFds++;
                 }
             }
@@ -159,7 +158,6 @@ printf("---3\n");
                             ipNumbersForClients[j] = ipNumbersForClients[j + 1];
                             portNumbersForClients[j] = portNumbersForClients[j + 1];
 printf("----2\n");
-                            g_free(colorCookies[j]);
                             colorCookies[j] = colorCookies[j + 1];
                         }
                         numberOfFds--;
@@ -262,9 +260,9 @@ printf("----2\n");
                                     if (g_strcmp0(oneArgSplit[0], "bg") == 0)
                                     {
 printf("---1\n");
-                                        g_free(colorCookies[i]);
                                         //colorCookies[i] = g_strndup(oneArgSplit[1], strlen(oneArgSplit[1]));
-                                        colorCookies[i] = g_strdup(oneArgSplit[1]);
+                                        memset(colorCookies[i], '\0', sizeof(colorCookies[i]));
+                                        strcpy(colorCookies[i], oneArgSplit[1]);
                                         printf("colorCookie: %s\n", colorCookies[i]);
                                     }
                                     g_strfreev(oneArgSplit);
