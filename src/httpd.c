@@ -36,9 +36,6 @@ void logToFile(char *ipNumber, char *clientPort, char *requestMethod, char *requ
     fclose(logFile);
 }
 
-
-
-
 int main(int argc, char *argv[])
 {
     if (argc < 2)
@@ -81,9 +78,9 @@ int main(int argc, char *argv[])
     char *ipNumberFromClient;
     int portNumberFromClient;
 
-    char* ipNumbersForClients[maxFds];
+    char *ipNumbersForClients[maxFds];
     int portNumbersForClients[maxFds];
-    char* colorCookies[maxFds];
+    char *colorCookies[maxFds];
     ipNumbersForClients[0] = "Should not be used";
     portNumbersForClients[0] = 42; //Should not be used either
 
@@ -107,7 +104,7 @@ int main(int argc, char *argv[])
             {
                 shutdown(fds[i].fd, SHUT_RDWR);
                 close(fds[i].fd);
-		g_free(colorCookies[i]);
+                g_free(colorCookies[i]);
             }
             numberOfFds = 1;
         }
@@ -129,23 +126,23 @@ int main(int argc, char *argv[])
                     printf("New connection established\n");
                     fds[numberOfFds].fd = connfd;
                     fds[numberOfFds].events = POLLIN;
-		    ipNumbersForClients[numberOfFds] = inet_ntoa(client.sin_addr);
-		    portNumbersForClients[numberOfFds] = ntohs(client.sin_port);
-		    colorCookies[numberOfFds] = g_strdup("");
-		    numberOfFds++;
+                    ipNumbersForClients[numberOfFds] = inet_ntoa(client.sin_addr);
+                    portNumbersForClients[numberOfFds] = ntohs(client.sin_port);
+                    colorCookies[numberOfFds] = g_strdup("");
+                    numberOfFds++;
                 }
             }
             for (int i = 1; i < numberOfFds; i++)
             {
                 if (fds[i].revents & POLLIN)
                 {
-		    ipNumberFromClient = ipNumbersForClients[i];
+                    ipNumberFromClient = ipNumbersForClients[i];
                     portNumberFromClient = portNumbersForClients[i];
                     connfd = fds[i].fd; // connfd is the fd of the current fds
                     printf("Before recv\n");
                     memset(message, 0, sizeof message);
                     ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
-		    printf("New recv arrived\n");
+                    printf("New recv arrived\n");
                     if (n < 0)
                     {
                         printf("recv returned an error\n");
@@ -155,39 +152,39 @@ int main(int argc, char *argv[])
                         printf("Clinet closed the connection so we close it also\n");
                         shutdown(fds[i].fd, SHUT_RDWR);
                         close(fds[i].fd);
-			for(int j = i; j < numberOfFds; j++) 
-			{
-			    fds[j].fd = fds[j+1].fd;
-			    ipNumbersForClients[j] = ipNumbersForClients[j+1];
-			    portNumbersForClients[j] = portNumbersForClients[j+1];
-			    g_free(colorCookies[j]);
-			    colorCookies[j] = colorCookies[j+1];
-			}
-			numberOfFds--;
+                        for (int j = i; j < numberOfFds; j++)
+                        {
+                            fds[j].fd = fds[j + 1].fd;
+                            ipNumbersForClients[j] = ipNumbersForClients[j + 1];
+                            portNumbersForClients[j] = portNumbersForClients[j + 1];
+                            g_free(colorCookies[j]);
+                            colorCookies[j] = colorCookies[j + 1];
+                        }
+                        numberOfFds--;
                     }
                     else
                     {
-			// Get some headers from the message
+                        // Get some headers from the message
                         message[n] = '\0';
                         char **messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
-                        gchar *requestMethod = messageSplit[0];                    // e.g. GET
-                        char *urlRest = messageSplit[1];                           // e.g. /djammid
-                        char *httpRequestType = messageSplit[2];                   // e.g. HTTP/1.1
+                        gchar *requestMethod = messageSplit[0];					   // e.g. GET
+                        char *urlRest = messageSplit[1];						   // e.g. /djammid
+                        char *httpRequestType = messageSplit[2];				   // e.g. HTTP/1.1
                         char *statusCode;
                         gchar *firstLineOfHeader;
-			// We always return html code so we set the content-type header to text/html
+                        // We always return html code so we set the content-type header to text/html
                         char *contentTypeHeader = "Content-Type: text/html\r\n";
                         char *endOfHeders = "\r\n";
                         gchar *header;
                         //first and last part of html we send
                         char *startOfHtml = "<!doctype html><body>";
-			char *openP = "<p>";
-			char *closeP = "</p>";
+                        char *openP = "<p>";
+                        char *closeP = "</p>";
                         char *endOfHtml = "</body></html>\r\n";
                         char *startOfUrl = "http://";
                         gchar *wholeHtmlCode = NULL;
                         char portNumber[20];
-			// Change portNumberFromClient from int to char[]
+                        // Change portNumberFromClient from int to char[]
                         sprintf(portNumber, "%d", portNumberFromClient);
                         char url[200];
                         //the connection and header is gotten from the array that contains the whole message
@@ -198,14 +195,14 @@ int main(int argc, char *argv[])
                             printf("requestMethod was Null\n");
                             requestMethod = "UNKNOWN"; // This makes it go to UNKNOWN
                         }
-			gchar** urlRestSplit;
-			// next is used in some for loops below and can't be null when the loop begins
+                        gchar **urlRestSplit;
+                        // next is used in some for loops below and can't be null when the loop begins
                         char *next = "init";
-			// Check if the method is GET, POST or HEAD becase those are the only once we implement
+                        // Check if the method is GET, POST or HEAD becase those are the only once we implement
                         if (g_strcmp0(requestMethod, "GET") == 0 || g_strcmp0(requestMethod, "HEAD") == 0 ||
                             g_strcmp0(requestMethod, "POST") == 0)
                         {
-			    // We search for a connection and host headers in the message from the client
+                            // We search for a connection and host headers in the message from the client
                             for (int i = 0; next != NULL; i++)
                             {
                                 gchar *nextLower = g_ascii_strdown(next, strlen(next));
@@ -221,8 +218,8 @@ int main(int argc, char *argv[])
                                 next = messageSplit[i + 1];
                                 g_free(nextLower);
                             }
-			    // check if connection header was not found then we put something in there so we
-			    // won't get an error later
+                            // check if connection header was not found then we put something in there so we
+                            // won't get an error later
                             if (connectionHeaderValue == NULL)
                             {
                                 printf("Connection header was not found\n");
@@ -238,53 +235,60 @@ int main(int argc, char *argv[])
                             strcpy(url, startOfUrl);
                             strcat(url, hostHeaderValue);
                             strcat(url, urlRest);
-			    urlRestSplit = g_strsplit(urlRest, "?", 2);
-			    gchar** allArguments;
-			    char argumentsHtml[500];
+                            urlRestSplit = g_strsplit(urlRest, "?", 2);
+                            gchar **allArguments;
+                            char argumentsHtml[500];
                             strcpy(argumentsHtml, "");
-			    if (urlRestSplit[1] == NULL || g_strcmp0(urlRestSplit[1], "") == 0) {
-				printf("There where no arguments\n");
-				allArguments = g_strsplit(urlRestSplit[0], "&", 0); // must put somthing here
-			    } else {
-				allArguments = g_strsplit(urlRestSplit[1], "&", 0);
+                            if (urlRestSplit[1] == NULL || g_strcmp0(urlRestSplit[1], "") == 0)
+                            {
+                                printf("There where no arguments\n");
+                                allArguments = g_strsplit(urlRestSplit[0], "&", 0); // must put somthing here
+                            }
+                            else
+                            {
+                                allArguments = g_strsplit(urlRestSplit[1], "&", 0);
                                 next = "init";
-                                for(int k = 0; next != NULL; k++) {
-				    // Put each arguemnt inside of <p> </p> and concat them all together
+                                for (int k = 0; next != NULL; k++)
+                                {
+                                    // Put each arguemnt inside of <p> </p> and concat them all together
                                     strcat(argumentsHtml, openP);
                                     strcat(argumentsHtml, allArguments[k]);
                                     strcat(argumentsHtml, closeP);
-                                    next = allArguments[k+1];
-				    gchar** oneArgSplit = g_strsplit(allArguments[k], "=", 2);
-				    // TODO: Maybe this should not be here because this saves the bg for all websites
-				    if(g_strcmp0(oneArgSplit[0], "bg") == 0){
-					g_free(colorCookies[i]);
-					colorCookies[i] = g_strndup( oneArgSplit[1], strlen(oneArgSplit[1]));
-					printf("colorCookie: %s\n", colorCookies[i]);
-				    }
-				    g_strfreev(oneArgSplit);
+                                    next = allArguments[k + 1];
+                                    gchar **oneArgSplit = g_strsplit(allArguments[k], "=", 2);
+                                    // TODO: Maybe this should not be here because this saves the bg for all websites
+                                    if (g_strcmp0(oneArgSplit[0], "bg") == 0)
+                                    {
+                                        g_free(colorCookies[i]);
+                                        colorCookies[i] = g_strndup(oneArgSplit[1], strlen(oneArgSplit[1]));
+                                        printf("colorCookie: %s\n", colorCookies[i]);
+                                    }
+                                    g_strfreev(oneArgSplit);
                                 }
-			    }
-
+                            }
 
                             //The status code and header of GET POST and HEAD of the request sent back successfully
                             statusCode = "200 OK";
                             firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
                             char *conectionTypeHeader;
-			    gchar *headerValueLower = g_ascii_strdown(connectionHeaderValue, strlen(connectionHeaderValue));
-			    // If this is true then connection header is set to close else keep-alive
-			    if(g_strcmp0(headerValueLower, "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0) {
-			        printf("Connection header was set to close\n");
-			        conectionTypeHeader = "Connection: close\r\n";
-			    } else {
-				printf("Connection header was set to keep-alive\n");
-				conectionTypeHeader = "Connection: keep-alive\r\n";
-			    }
-			    g_free(headerValueLower);
+                            gchar *headerValueLower = g_ascii_strdown(connectionHeaderValue, strlen(connectionHeaderValue));
+                            // If this is true then connection header is set to close else keep-alive
+                            if (g_strcmp0(headerValueLower, "close") == 0 || g_strcmp0("HTTP/1.0", httpRequestType) == 0)
+                            {
+                                printf("Connection header was set to close\n");
+                                conectionTypeHeader = "Connection: close\r\n";
+                            }
+                            else
+                            {
+                                printf("Connection header was set to keep-alive\n");
+                                conectionTypeHeader = "Connection: keep-alive\r\n";
+                            }
+                            g_free(headerValueLower);
                             header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader, endOfHeders, NULL);
                             //Checking what kind of request method to handle
                             //In a get request the html page displays the url of the requested page and the IP
                             //address and port number of the requesting client
-                            if (g_strcmp0(requestMethod, "GET") == 0 || g_strcmp0(requestMethod, "HEAD") == 0 )
+                            if (g_strcmp0(requestMethod, "GET") == 0 || g_strcmp0(requestMethod, "HEAD") == 0)
                             {
                                 //favicon is not processed
                                 if (g_strcmp0(urlRest, "/favicon.ico") == 0)
@@ -299,25 +303,25 @@ int main(int argc, char *argv[])
                                 }
                                 else
                                 {
-				    gchar* body;
-				    if(g_strcmp0(urlRestSplit[0], "/color") == 0)
-	                            {
-					printf("---color: %s\n", colorCookies[i]);
-                        	        printf("Should show the color page\n");
-					body = g_strconcat(startOfHtml, "<body style=\"background-color:", colorCookies[i], "\"></body>",
+                                    gchar *body;
+                                    if (g_strcmp0(urlRestSplit[0], "/color") == 0)
+                                    {
+                                        printf("---color: %s\n", colorCookies[i]);
+                                        printf("Should show the color page\n");
+                                        body = g_strconcat(startOfHtml, "<body style=\"background-color:", colorCookies[i], "\"></body>",
                                                            endOfHtml, NULL);
-        	                    }
-				    else if(g_strcmp0(urlRestSplit[0], "/test") == 0)
-				    {
-					body = g_strconcat(startOfHtml, openP, url, " ", ipNumberFromClient,
+                                    }
+                                    else if (g_strcmp0(urlRestSplit[0], "/test") == 0)
+                                    {
+                                        body = g_strconcat(startOfHtml, openP, url, " ", ipNumberFromClient,
                                                            ":", portNumber, closeP, argumentsHtml, endOfHtml, NULL);
-				    }
-	                            else
-        	                    {
-	                                printf("should not show the color page\n");
-					body = g_strconcat(startOfHtml, openP, url, " ", ipNumberFromClient,
+                                    }
+                                    else
+                                    {
+                                        printf("should not show the color page\n");
+                                        body = g_strconcat(startOfHtml, openP, url, " ", ipNumberFromClient,
                                                            ":", portNumber, closeP, endOfHtml, NULL);
-                            	    }
+                                    }
                                     int bodyLength = strlen(body);
                                     char bodyLengthInChar[10];
                                     sprintf(bodyLengthInChar, "%d", bodyLength);
@@ -325,16 +329,18 @@ int main(int argc, char *argv[])
                                     strcpy(contentLengthtTypeHeader, "Content-Length: ");
                                     strcat(contentLengthtTypeHeader, bodyLengthInChar);
                                     strcat(contentLengthtTypeHeader, "\r\n");
-				    g_free(header);
-				    header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader,
-					             contentLengthtTypeHeader, endOfHeders, NULL);
+                                    g_free(header);
+                                    header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader,
+                                                         contentLengthtTypeHeader, endOfHeders, NULL);
 
-				    
-				    if(g_strcmp0(requestMethod, "GET") == 0 ) {
-					wholeHtmlCode = g_strconcat(header, body, NULL);
-				    } else {  // then we have a HEAD which only returns the headers
-					wholeHtmlCode = g_strconcat(header, NULL);
-				    }
+                                    if (g_strcmp0(requestMethod, "GET") == 0)
+                                    {
+                                        wholeHtmlCode = g_strconcat(header, body, NULL);
+                                    }
+                                    else
+                                    { // then we have a HEAD which only returns the headers
+                                        wholeHtmlCode = g_strconcat(header, NULL);
+                                    }
                                     g_free(body);
                                 }
                             }
@@ -355,31 +361,31 @@ int main(int argc, char *argv[])
                                     }
                                     next = split[i + 1];
                                 }
-				gchar *wholeBody = g_strconcat(startOfHtml, openP, url, " ", ipNumberFromClient, 
-							           ":", portNumber, body, closeP, argumentsHtml, endOfHtml, NULL);
-				int bodyLength = strlen(wholeBody);
+                                gchar *wholeBody = g_strconcat(startOfHtml, openP, url, " ", ipNumberFromClient,
+                                                               ":", portNumber, body, closeP, argumentsHtml, endOfHtml, NULL);
+                                int bodyLength = strlen(wholeBody);
                                 char bodyLengthInChar[10];
                                 sprintf(bodyLengthInChar, "%d", bodyLength);
                                 char contentLengthtTypeHeader[100];
                                 strcpy(contentLengthtTypeHeader, "Content-Length: ");
                                 strcat(contentLengthtTypeHeader, bodyLengthInChar);
                                 strcat(contentLengthtTypeHeader, "\r\n");
-				printf("contentLengthtTypeHeader: %s\n", contentLengthtTypeHeader);
-				g_free(header);
-				header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader, 
-							contentLengthtTypeHeader, endOfHeders, NULL);
+                                printf("contentLengthtTypeHeader: %s\n", contentLengthtTypeHeader);
+                                g_free(header);
+                                header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader,
+                                                     contentLengthtTypeHeader, endOfHeders, NULL);
                                 wholeHtmlCode = g_strconcat(header, wholeBody, NULL);
-				g_free(wholeBody);
+                                g_free(wholeBody);
                                 g_strfreev(split);
                             }
-			    g_strfreev(allArguments);
+                            g_strfreev(allArguments);
                         }
                         else
                         {
                             printf("requestMethod was not known");
                             requestMethod = "UNKNOWN";
                             statusCode = "501 Not Implemented";
-			    char *conectionHeader = "Connection: close\r\n";
+                            char *conectionHeader = "Connection: close\r\n";
                             char *msg = "This service only supports GET, HEAD and POST";
                             int lengthOfMsg = strlen(msg);
                             char lengthInChar[10];
@@ -389,9 +395,9 @@ int main(int argc, char *argv[])
                             strcat(contentLengthtTypeHeader, lengthInChar);
                             strcat(contentLengthtTypeHeader, "\r\n");
                             firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
-			    g_free(header);
-                            header = g_strconcat(firstLineOfHeader, contentTypeHeader, contentLengthtTypeHeader, 
-                                                     conectionHeader, endOfHeders, NULL);
+                            g_free(header);
+                            header = g_strconcat(firstLineOfHeader, contentTypeHeader, contentLengthtTypeHeader,
+                                                 conectionHeader, endOfHeders, NULL);
                             wholeHtmlCode = g_strconcat(header, "This service only supports GET, HEAD and POST", NULL);
                             // Do this so the connection will be closed after the error message has been sent
                             connectionHeaderValue = "close";
@@ -408,7 +414,7 @@ int main(int argc, char *argv[])
                         g_free(firstLineOfHeader);
                         g_free(header);
                         g_strfreev(messageSplit);
-			g_strfreev(urlRestSplit);
+                        g_strfreev(urlRestSplit);
                     }
                 }
             }
