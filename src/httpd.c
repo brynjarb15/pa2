@@ -165,6 +165,8 @@ int main(int argc, char *argv[])
                     ipNumberFromClient = ipNumbersForClients[i];
                     portNumberFromClient = portNumbersForClients[i];
                     connfd = fds[i].fd; // connfd is the fd of the current fds
+		    // Restart the time for the current fds because there was an activity on it
+		    startTimeOfFds[i] = time(NULL);
                     printf("Before recv\n");
                     memset(message, 0, sizeof message);
                     ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
@@ -183,6 +185,7 @@ int main(int argc, char *argv[])
                             fds[j].fd = fds[j + 1].fd;
                             ipNumbersForClients[j] = ipNumbersForClients[j + 1];
                             portNumbersForClients[j] = portNumbersForClients[j + 1];
+			    startTimeOfFds[j] = startTimeOfFds[j + 1];
                             memset(colorCookies[j], '\0', sizeof(colorCookies[j]));
                             strcpy(colorCookies[j], colorCookies[j + 1]);
                         }
