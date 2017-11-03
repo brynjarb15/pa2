@@ -107,6 +107,7 @@ int main(int argc, char *argv[])
             {
                 shutdown(fds[i].fd, SHUT_RDWR);
                 close(fds[i].fd);
+		g_free(colorCookies[i]);
             }
             numberOfFds = 1;
         }
@@ -130,7 +131,7 @@ int main(int argc, char *argv[])
                     fds[numberOfFds].events = POLLIN;
 		    ipNumbersForClients[numberOfFds] = inet_ntoa(client.sin_addr);
 		    portNumbersForClients[numberOfFds] = ntohs(client.sin_port);
-		    colorCookies[numberOfFds] = "";
+		    colorCookies[numberOfFds] = g_strdup("");
 		    numberOfFds++;
                 }
             }
@@ -159,6 +160,7 @@ int main(int argc, char *argv[])
 			    fds[j].fd = fds[j+1].fd;
 			    ipNumbersForClients[j] = ipNumbersForClients[j+1];
 			    portNumbersForClients[j] = portNumbersForClients[j+1];
+			    g_free(colorCookies[j]);
 			    colorCookies[j] = colorCookies[j+1];
 			}
 			numberOfFds--;
@@ -255,6 +257,7 @@ int main(int argc, char *argv[])
 				    gchar** oneArgSplit = g_strsplit(allArguments[k], "=", 2);
 				    // TODO: Maybe this should not be here because this saves the bg for all websites
 				    if(g_strcmp0(oneArgSplit[0], "bg") == 0){
+					g_free(colorCookies[i]);
 					colorCookies[i] = g_strndup( oneArgSplit[1], strlen(oneArgSplit[1]));
 					printf("colorCookie: %s\n", colorCookies[i]);
 				    }
@@ -277,7 +280,7 @@ int main(int argc, char *argv[])
 				conectionTypeHeader = "Connection: keep-alive\r\n";
 			    }
 			    g_free(headerValueLower);
-                            //header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader, endOfHeders, NULL);
+                            header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader, endOfHeders, NULL);
                             //Checking what kind of request method to handle
                             //In a get request the html page displays the url of the requested page and the IP
                             //address and port number of the requesting client
@@ -304,11 +307,16 @@ int main(int argc, char *argv[])
 					body = g_strconcat(startOfHtml, "<body style=\"background-color:", colorCookies[i], "\"></body>",
                                                            endOfHtml, NULL);
         	                    }
+				    else if(g_strcmp0(urlRestSplit[0], "/test") == 0)
+				    {
+					body = g_strconcat(startOfHtml, openP, url, " ", ipNumberFromClient,
+                                                           ":", portNumber, closeP, argumentsHtml, endOfHtml, NULL);
+				    }
 	                            else
         	                    {
 	                                printf("should not show the color page\n");
-					body = g_strconcat(startOfHtml, openP,url, " ", ipNumberFromClient,
-                                                           ":", portNumber, closeP, argumentsHtml, endOfHtml, NULL);
+					body = g_strconcat(startOfHtml, openP, url, " ", ipNumberFromClient,
+                                                           ":", portNumber, closeP, endOfHtml, NULL);
                             	    }
                                     int bodyLength = strlen(body);
                                     char bodyLengthInChar[10];
@@ -317,6 +325,7 @@ int main(int argc, char *argv[])
                                     strcpy(contentLengthtTypeHeader, "Content-Length: ");
                                     strcat(contentLengthtTypeHeader, bodyLengthInChar);
                                     strcat(contentLengthtTypeHeader, "\r\n");
+				    g_free(header);
 				    header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader,
 					             contentLengthtTypeHeader, endOfHeders, NULL);
 
@@ -356,6 +365,7 @@ int main(int argc, char *argv[])
                                 strcat(contentLengthtTypeHeader, bodyLengthInChar);
                                 strcat(contentLengthtTypeHeader, "\r\n");
 				printf("contentLengthtTypeHeader: %s\n", contentLengthtTypeHeader);
+				g_free(header);
 				header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader, 
 							contentLengthtTypeHeader, endOfHeders, NULL);
                                 wholeHtmlCode = g_strconcat(header, wholeBody, NULL);
@@ -379,6 +389,7 @@ int main(int argc, char *argv[])
                             strcat(contentLengthtTypeHeader, lengthInChar);
                             strcat(contentLengthtTypeHeader, "\r\n");
                             firstLineOfHeader = g_strjoin(" ", httpRequestType, statusCode, "\r\n", NULL);
+			    g_free(header);
                             header = g_strconcat(firstLineOfHeader, contentTypeHeader, contentLengthtTypeHeader, 
                                                      conectionHeader, endOfHeders, NULL);
                             wholeHtmlCode = g_strconcat(header, "This service only supports GET, HEAD and POST", NULL);
