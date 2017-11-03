@@ -103,13 +103,14 @@ int main(int argc, char *argv[])
             time_t timeNow;
             timeNow = time(NULL);
 
-            printf("Timeout\n");
+            //printf("Timeout\n");
             for (int i = 1; i < numberOfFds; i++)
             {
                 int timeWithoutAction = timeNow - startTimeOfFds[i];
-                int timeoutTime = 15; // TODO: Þetta ætti að viera 30
+                int timeoutTime = 30; // TODO: Þetta ætti að viera 30
                 if (timeWithoutAction >= timeoutTime)
                 {
+		    printf("closing fds: %d\n", fds[i].fd);
                     shutdown(fds[i].fd, SHUT_RDWR);
                     close(fds[i].fd);
                     for (int j = i; j < numberOfFds - 1; j++)
