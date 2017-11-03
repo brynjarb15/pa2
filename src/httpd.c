@@ -196,6 +196,7 @@ int main(int argc, char *argv[])
                             printf("requestMethod was Null\n");
                             requestMethod = "UNKNOWN"; // This makes it go to UNKNOWN
                         }
+			gchar** urlRestSplit;
 			// next is used in some for loops below and can't be null when the loop begins
                         char *next = "init";
 			// Check if the method is GET, POST or HEAD becase those are the only once we implement
@@ -235,7 +236,7 @@ int main(int argc, char *argv[])
                             strcpy(url, startOfUrl);
                             strcat(url, hostHeaderValue);
                             strcat(url, urlRest);
-			    gchar** urlRestSplit = g_strsplit(urlRest, "?", 2);
+			    urlRestSplit = g_strsplit(urlRest, "?", 2);
 			    gchar** allArguments;
 			    char argumentsHtml[500];
                             strcpy(argumentsHtml, "");
@@ -275,7 +276,8 @@ int main(int argc, char *argv[])
 				printf("Connection header was set to keep-alive\n");
 				conectionTypeHeader = "Connection: keep-alive\r\n";
 			    }
-                            header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader, endOfHeders, NULL);
+			    g_free(headerValueLower);
+                            //header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader, endOfHeders, NULL);
                             //Checking what kind of request method to handle
                             //In a get request the html page displays the url of the requested page and the IP
                             //address and port number of the requesting client
@@ -390,10 +392,12 @@ int main(int argc, char *argv[])
                         // We send the wholeHtmlCode constructed above
                         send(connfd, wholeHtmlCode, strlen(wholeHtmlCode), 0);
                         // Free memory we don't need anymore
+                        printf("freeing the headers\n");
                         g_free(wholeHtmlCode);
                         g_free(firstLineOfHeader);
                         g_free(header);
                         g_strfreev(messageSplit);
+			g_strfreev(urlRestSplit);
                     }
                 }
             }
