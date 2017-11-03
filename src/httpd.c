@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 
     char *ipNumbersForClients[maxFds];
     int portNumbersForClients[maxFds];
-    char *colorCookies[maxFds];
+    char colorCookies[maxFds];
     ipNumbersForClients[0] = "Should not be used";
     portNumbersForClients[0] = 42; //Should not be used either
 
@@ -104,6 +104,7 @@ int main(int argc, char *argv[])
             {
                 shutdown(fds[i].fd, SHUT_RDWR);
                 close(fds[i].fd);
+printf("---3\n");
                 g_free(colorCookies[i]);
             }
             numberOfFds = 1;
@@ -157,6 +158,7 @@ int main(int argc, char *argv[])
                             fds[j].fd = fds[j + 1].fd;
                             ipNumbersForClients[j] = ipNumbersForClients[j + 1];
                             portNumbersForClients[j] = portNumbersForClients[j + 1];
+printf("----2\n");
                             g_free(colorCookies[j]);
                             colorCookies[j] = colorCookies[j + 1];
                         }
@@ -259,6 +261,7 @@ int main(int argc, char *argv[])
                                     // TODO: Maybe this should not be here because this saves the bg for all websites
                                     if (g_strcmp0(oneArgSplit[0], "bg") == 0)
                                     {
+printf("---1\n");
                                         g_free(colorCookies[i]);
                                         //colorCookies[i] = g_strndup(oneArgSplit[1], strlen(oneArgSplit[1]));
                                         colorCookies[i] = g_strdup(oneArgSplit[1]);
