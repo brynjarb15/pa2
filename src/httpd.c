@@ -36,9 +36,6 @@ void logToFile(char *ipNumber, char *clientPort, char *requestMethod, char *requ
     fclose(logFile);
 }
 
-int maxFds = 300;
-struct pollfd fds[300]; // getum max tekið við 300 tengingum í einu
-int numberOfFds = 1;
 
 
 
@@ -87,13 +84,12 @@ int main(int argc, char *argv[])
     char* ipNumbersForClients[maxFds];
     int portNumbersForClients[maxFds];
     char* colorCookies[maxFds];
-    ipNumbersForClients[0] = "Shoul not be used";
+    ipNumbersForClients[0] = "Should not be used";
     portNumbersForClients[0] = 42; //Should not be used either
 
     for (;;)
     {
         printf("Start of for loop\n");
-        //printf("Waiting for connection \n");
         // We first have to accept a TCP connection, connfd is a fresh
         // handle dedicated to this connection
         socklen_t len = (socklen_t)sizeof(client);
