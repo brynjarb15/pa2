@@ -141,9 +141,10 @@ int main(int argc, char *argv[])
 		    ipNumberFromClient = ipNumbersForClients[i];
                     portNumberFromClient = portNumbersForClients[i];
                     connfd = fds[i].fd; // connfd is the fd of the current fds
-                    printf("fds[i].revents &POLLIN == TRUE\n");
+                    printf("Before recv\n");
                     memset(message, 0, sizeof message);
                     ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
+		    printf("New recv arrived\n");
                     if (n < 0)
                     {
                         printf("recv returned an error\n");
@@ -164,14 +165,15 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
+			// Get some headers from the message
                         message[n] = '\0';
-                        printf("New recv\n");
                         char **messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
                         gchar *requestMethod = messageSplit[0];                    // e.g. GET
                         char *urlRest = messageSplit[1];                           // e.g. /djammid
                         char *httpRequestType = messageSplit[2];                   // e.g. HTTP/1.1
                         char *statusCode;
                         gchar *firstLineOfHeader;
+			// We always return html code so we set the content-type header to text/html
                         char *contentTypeHeader = "Content-Type: text/html\r\n";
                         char *endOfHeders = "\r\n";
                         gchar *header;
@@ -183,6 +185,7 @@ int main(int argc, char *argv[])
                         char *startOfUrl = "http://";
                         gchar *wholeHtmlCode = NULL;
                         char portNumber[20];
+			// Change portNumberFromClient from int to char[]
                         sprintf(portNumber, "%d", portNumberFromClient);
                         char url[200];
                         //the connection and header is gotten from the array that contains the whole message
@@ -193,10 +196,13 @@ int main(int argc, char *argv[])
                             printf("requestMethod was Null\n");
                             requestMethod = "UNKNOWN"; // This makes it go to UNKNOWN
                         }
+			// next is used in some for loops below and can't be null when the loop begins
                         char *next = "init";
+			// Check if the method is GET, POST or HEAD becase those are the only once we implement
                         if (g_strcmp0(requestMethod, "GET") == 0 || g_strcmp0(requestMethod, "HEAD") == 0 ||
                             g_strcmp0(requestMethod, "POST") == 0)
                         {
+			    // We search for a connection and host headers in the message from the client
                             for (int i = 0; next != NULL; i++)
                             {
                                 gchar *nextLower = g_ascii_strdown(next, strlen(next));
@@ -212,6 +218,8 @@ int main(int argc, char *argv[])
                                 next = messageSplit[i + 1];
                                 g_free(nextLower);
                             }
+			    // check if connection header was not found then we put something in there so we
+			    // won't get an error later
                             if (connectionHeaderValue == NULL)
                             {
                                 printf("Connection header was not found\n");
@@ -222,7 +230,8 @@ int main(int argc, char *argv[])
                                 printf("Host header was not found\n");
                                 continue;
                             }
-                            // Make the url out of the the 3 parts
+                            // Make the whole url out of the the 3 parts
+                            // We put the url on the website we return
                             strcpy(url, startOfUrl);
                             strcat(url, hostHeaderValue);
                             strcat(url, urlRest);
@@ -230,25 +239,25 @@ int main(int argc, char *argv[])
 			    gchar** allArguments;
 			    char argumentsHtml[500];
                             strcpy(argumentsHtml, "");
-			    if (urlRestSplit[1] == NULL) {
+			    if (urlRestSplit[1] == NULL || g_strcmp0(urlRestSplit[1], "") == 0) {
 				printf("There where no arguments\n");
 				allArguments = g_strsplit(urlRestSplit[0], "&", 0); // must put somthing here
 			    } else {
 				allArguments = g_strsplit(urlRestSplit[1], "&", 0);
                                 next = "init";
-				printf("||||||||||||||||||||||||||||||||||||||||||\n");
                                 for(int k = 0; next != NULL; k++) {
-				    // Put the arguemnts inside of <p> </p>
+				    // Put each arguemnt inside of <p> </p> and concat them all together
                                     strcat(argumentsHtml, openP);
                                     strcat(argumentsHtml, allArguments[k]);
                                     strcat(argumentsHtml, closeP);
                                     next = allArguments[k+1];
 				    gchar** oneArgSplit = g_strsplit(allArguments[k], "=", 2);
-				    printf("_____%s\n",oneArgSplit[1]);
+				    // TODO: Maybe this should not be here because this saves the bg for all websites
 				    if(g_strcmp0(oneArgSplit[0], "bg") == 0){
-					colorCookies[i] = oneArgSplit[1];
+					colorCookies[i] = g_strndup( oneArgSplit[1], strlen(oneArgSplit[1]));
+					printf("colorCookie: %s\n", colorCookies[i]);
 				    }
-
+				    g_strfreev(oneArgSplit);
                                 }
 			    }
 
