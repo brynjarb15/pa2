@@ -167,9 +167,9 @@ int main(int argc, char *argv[])
                         // Get some headers from the message
                         message[n] = '\0';
                         char **messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
-                        gchar *requestMethod = messageSplit[0];					   // e.g. GET
-                        char *urlRest = messageSplit[1];						   // e.g. /djammid
-                        char *httpRequestType = messageSplit[2];				   // e.g. HTTP/1.1
+                        gchar *requestMethod = messageSplit[0];                    // e.g. GET
+                        char *urlRest = messageSplit[1];                           // e.g. /djammid
+                        char *httpRequestType = messageSplit[2];                   // e.g. HTTP/1.1
                         char *statusCode;
                         gchar *firstLineOfHeader;
                         // We always return html code so we set the content-type header to text/html
@@ -345,6 +345,7 @@ int main(int argc, char *argv[])
                                     g_free(body);
                                 }
                                 g_strfreev(urlRestSplit);
+                                g_free(header);
                             }
                             // In a post request the html page displays the url of the requested page,
                             // the IP address and port number of the requesting client
@@ -414,7 +415,6 @@ int main(int argc, char *argv[])
                         printf("freeing the headers\n");
                         g_free(wholeHtmlCode);
                         g_free(firstLineOfHeader);
-                        g_free(header);
                         g_strfreev(messageSplit);
                     }
                 }
