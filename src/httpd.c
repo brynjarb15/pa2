@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     // welcome port. A backlog of one connection is allowed.
     listen(sockfd, 1);
     int connfd;
-    int timeout = 30000; //TODO: þetta ætti að vera 30000
+    int timeout = 1500; //TODO: þetta ætti að vera 30000
     int maxFds = 300;
     struct pollfd fds[maxFds]; // getum max tekið við 300 tengingum í einu
     int numberOfFds = 1;
@@ -83,6 +83,7 @@ int main(int argc, char *argv[])
     char colorCookies[maxFds][50];
     ipNumbersForClients[0] = "Should not be used";
     portNumbersForClients[0] = 42; //Should not be used either
+    time_t startTimeOfFds[maxFds];
     for (;;)
     {
         //printf("Start of for loop\n");
@@ -98,13 +99,32 @@ int main(int argc, char *argv[])
         }
         else if (pollRet == 0)
         {
-            printf("Timeout\n");
+            time_t timeNow;
+            timeNow = time(NULL);
+
             for (int i = 1; i < numberOfFds; i++)
             {
-                shutdown(fds[i].fd, SHUT_RDWR);
-                close(fds[i].fd);
+                int timeWithoutAction = timeNow - startTimeOfFds[i];
+                int timeoutTime = 30; // This should be 30
+                if (timeWithoutAction >= timeoutTime)
+                {
+                    printf("closing fds: %d\n", fds[i].fd);
+                    shutdown(fds[i].fd, SHUT_RDWR);
+                    close(fds[i].fd);
+                    for (int j = i; j < numberOfFds - 1; j++)
+                    {
+                        fds[j].fd = fds[j + 1].fd;
+                        ipNumbersForClients[j] = ipNumbersForClients[j + 1];
+                        portNumbersForClients[j] = portNumbersForClients[j + 1];
+                        startTimeOfFds[j] = startTimeOfFds[j + 1];
+                        memset(colorCookies[j], '\0', sizeof(colorCookies[j]));
+                        strcpy(colorCookies[j], colorCookies[j + 1]);
+                    }
+                    numberOfFds--;
+                    i--;
+                }
             }
-            numberOfFds = 1;
+            //numberOfFds = 1;
         }
         else if (pollRet > 0)
         {
@@ -127,6 +147,7 @@ int main(int argc, char *argv[])
                     fds[numberOfFds].revents = 0;
                     ipNumbersForClients[numberOfFds] = inet_ntoa(client.sin_addr);
                     portNumbersForClients[numberOfFds] = ntohs(client.sin_port);
+                    startTimeOfFds[numberOfFds] = time(NULL);
                     memset(colorCookies[numberOfFds], '\0', sizeof(colorCookies[numberOfFds]));
                     strcpy(colorCookies[numberOfFds], "");
                     numberOfFds++;
@@ -140,6 +161,7 @@ int main(int argc, char *argv[])
                     portNumberFromClient = portNumbersForClients[i];
                     connfd = fds[i].fd; // connfd is the fd of the current fds
                     // Restart the time for the current fds because there was an activity on it
+                    startTimeOfFds[i] = time(NULL);
                     printf("Before recv\n");
                     memset(message, 0, sizeof message);
                     ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
@@ -158,6 +180,7 @@ int main(int argc, char *argv[])
                             fds[j].fd = fds[j + 1].fd;
                             ipNumbersForClients[j] = ipNumbersForClients[j + 1];
                             portNumbersForClients[j] = portNumbersForClients[j + 1];
+                            startTimeOfFds[j] = startTimeOfFds[j + 1];
                             memset(colorCookies[j], '\0', sizeof(colorCookies[j]));
                             strcpy(colorCookies[j], colorCookies[j + 1]);
                         }
@@ -258,7 +281,7 @@ int main(int argc, char *argv[])
                                     strcat(argumentsHtml, closeP);
                                     next = allArguments[k + 1];
                                     gchar **oneArgSplit = g_strsplit(allArguments[k], "=", 2);
-                                    // This only runs when the page is /color and we found a querie bg
+                                    // TODO: Maybe this should not be here because this saves the bg for all websites
                                     if (g_strcmp0(oneArgSplit[0], "bg") == 0 && g_strcmp0(urlRestSplit[0], "/color") == 0)
                                     {
                                         memset(colorCookies[i], '\0', sizeof(colorCookies[i]));
