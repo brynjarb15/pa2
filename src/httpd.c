@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
                 int timeoutTime = 30; // This should be 30
                 if (timeWithoutAction >= timeoutTime)
                 {
-		    printf("closing fds: %d\n", fds[i].fd);
+                    printf("closing fds: %d\n", fds[i].fd);
                     shutdown(fds[i].fd, SHUT_RDWR);
                     close(fds[i].fd);
                     for (int j = i; j < numberOfFds - 1; j++)
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
                     printf("New connection established\n");
                     fds[numberOfFds].fd = connfd;
                     fds[numberOfFds].events = POLLIN;
-		    fds[numberOfFds].revents = 0;
+                    fds[numberOfFds].revents = 0;
                     ipNumbersForClients[numberOfFds] = inet_ntoa(client.sin_addr);
                     portNumbersForClients[numberOfFds] = ntohs(client.sin_port);
                     startTimeOfFds[numberOfFds] = time(NULL);
@@ -160,8 +160,8 @@ int main(int argc, char *argv[])
                     ipNumberFromClient = ipNumbersForClients[i];
                     portNumberFromClient = portNumbersForClients[i];
                     connfd = fds[i].fd; // connfd is the fd of the current fds
-		    // Restart the time for the current fds because there was an activity on it
-		    startTimeOfFds[i] = time(NULL);
+                    // Restart the time for the current fds because there was an activity on it
+                    startTimeOfFds[i] = time(NULL);
                     printf("Before recv\n");
                     memset(message, 0, sizeof message);
                     ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
                             fds[j].fd = fds[j + 1].fd;
                             ipNumbersForClients[j] = ipNumbersForClients[j + 1];
                             portNumbersForClients[j] = portNumbersForClients[j + 1];
-			    startTimeOfFds[j] = startTimeOfFds[j + 1];
+                            startTimeOfFds[j] = startTimeOfFds[j + 1];
                             memset(colorCookies[j], '\0', sizeof(colorCookies[j]));
                             strcpy(colorCookies[j], colorCookies[j + 1]);
                         }
@@ -191,9 +191,9 @@ int main(int argc, char *argv[])
                         // Get some headers from the message
                         message[n] = '\0';
                         char **messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
-                        gchar *requestMethod = messageSplit[0];                    // e.g. GET
-                        char *urlRest = messageSplit[1];                           // e.g. /djammid
-                        char *httpRequestType = messageSplit[2];                   // e.g. HTTP/1.1
+                        gchar *requestMethod = messageSplit[0];					   // e.g. GET
+                        char *urlRest = messageSplit[1];						   // e.g. /djammid
+                        char *httpRequestType = messageSplit[2];				   // e.g. HTTP/1.1
                         char *statusCode;
                         gchar *firstLineOfHeader;
                         // We always return html code so we set the content-type header to text/html
@@ -266,8 +266,8 @@ int main(int argc, char *argv[])
                             if (urlRestSplit[1] == NULL || g_strcmp0(urlRestSplit[1], "") == 0)
                             {
                                 printf("There where no arguments\n");
-				// must put somthing here else we get a null error below
-                                allArguments = g_strsplit(urlRestSplit[0], "&", 0); 
+                                // must put somthing here else we get a null error below
+                                allArguments = g_strsplit(urlRestSplit[0], "&", 0);
                             }
                             else
                             {
@@ -337,7 +337,7 @@ int main(int argc, char *argv[])
                                     }
                                     else if (g_strcmp0(urlRestSplit[0], "/test") == 0)
                                     {
-					//printf("should show the test page\n");
+                                        //printf("should show the test page\n");
                                         body = g_strconcat(startOfHtml, openP, url, " ", ipNumberFromClient,
                                                            ":", portNumber, closeP, argumentsHtml, endOfHtml, NULL);
                                     }
