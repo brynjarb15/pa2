@@ -281,7 +281,7 @@ int main(int argc, char *argv[])
                                     strcat(argumentsHtml, closeP);
                                     next = allArguments[k + 1];
                                     gchar **oneArgSplit = g_strsplit(allArguments[k], "=", 2);
-                                    // TODO: Maybe this should not be here because this saves the bg for all websites
+				    // This only runs when the page is /color and we found a querie bg
                                     if (g_strcmp0(oneArgSplit[0], "bg") == 0 && g_strcmp0(urlRestSplit[0], "/color") == 0)
                                     {
                                         memset(colorCookies[i], '\0', sizeof(colorCookies[i]));
