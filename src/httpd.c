@@ -84,10 +84,9 @@ int main(int argc, char *argv[])
     ipNumbersForClients[0] = "Should not be used";
     portNumbersForClients[0] = 42; //Should not be used either
     time_t startTimeOfFds[maxFds];
-
     for (;;)
     {
-        printf("Start of for loop\n");
+        //printf("Start of for loop\n");
         // We first have to accept a TCP connection, connfd is a fresh
         // handle dedicated to this connection
         socklen_t len = (socklen_t)sizeof(client);
@@ -103,11 +102,10 @@ int main(int argc, char *argv[])
             time_t timeNow;
             timeNow = time(NULL);
 
-            //printf("Timeout\n");
             for (int i = 1; i < numberOfFds; i++)
             {
                 int timeWithoutAction = timeNow - startTimeOfFds[i];
-                int timeoutTime = 30; // TODO: Þetta ætti að viera 30
+                int timeoutTime = 30; // This should be 30
                 if (timeWithoutAction >= timeoutTime)
                 {
 		    printf("closing fds: %d\n", fds[i].fd);
@@ -130,7 +128,7 @@ int main(int argc, char *argv[])
         }
         else if (pollRet > 0)
         {
-            printf("pollRet > 0\n");
+            //printf("pollRet > 0\n");
             if (fds[0].revents & POLLIN)
             {
                 // If this is true then there is a new POLLIN event
@@ -153,15 +151,12 @@ int main(int argc, char *argv[])
                     memset(colorCookies[numberOfFds], '\0', sizeof(colorCookies[numberOfFds]));
                     strcpy(colorCookies[numberOfFds], "");
                     numberOfFds++;
-                    printf("finished new connection\n");
                 }
             }
             for (int i = 1; i < numberOfFds; i++)
             {
-                printf("---5\n");
                 if (fds[i].revents & POLLIN)
                 {
-                    printf("---6\n");
                     ipNumberFromClient = ipNumbersForClients[i];
                     portNumberFromClient = portNumbersForClients[i];
                     connfd = fds[i].fd; // connfd is the fd of the current fds
@@ -170,14 +165,14 @@ int main(int argc, char *argv[])
                     printf("Before recv\n");
                     memset(message, 0, sizeof message);
                     ssize_t n = recv(connfd, message, sizeof(message) - 1, 0);
-                    printf("New recv arrived\n");
+                    //printf("New recv arrived\n");
                     if (n < 0)
                     {
                         printf("recv returned an error\n");
                     }
                     else if (n == 0)
                     {
-                        printf("Clinet closed the connection so we close it also\n");
+                        printf("Client closed the connection so we will close it also\n");
                         shutdown(fds[i].fd, SHUT_RDWR);
                         close(fds[i].fd);
                         for (int j = i; j < numberOfFds - 1; j++)
@@ -271,7 +266,8 @@ int main(int argc, char *argv[])
                             if (urlRestSplit[1] == NULL || g_strcmp0(urlRestSplit[1], "") == 0)
                             {
                                 printf("There where no arguments\n");
-                                allArguments = g_strsplit(urlRestSplit[0], "&", 0); // must put somthing here
+				// must put somthing here else we get a null error below
+                                allArguments = g_strsplit(urlRestSplit[0], "&", 0); 
                             }
                             else
                             {
@@ -286,7 +282,7 @@ int main(int argc, char *argv[])
                                     next = allArguments[k + 1];
                                     gchar **oneArgSplit = g_strsplit(allArguments[k], "=", 2);
                                     // TODO: Maybe this should not be here because this saves the bg for all websites
-                                    if (g_strcmp0(oneArgSplit[0], "bg") == 0)
+                                    if (g_strcmp0(oneArgSplit[0], "bg") == 0 && g_strcmp0(urlRestSplit[0], "/color") == 0)
                                     {
                                         memset(colorCookies[i], '\0', sizeof(colorCookies[i]));
                                         strcpy(colorCookies[i], oneArgSplit[1]);
@@ -335,19 +331,19 @@ int main(int argc, char *argv[])
                                     gchar *body;
                                     if (g_strcmp0(urlRestSplit[0], "/color") == 0)
                                     {
-                                        printf("---color: %s\n", colorCookies[i]);
-                                        printf("Should show the color page\n");
+                                        //printf("Should show the color page\n");
                                         body = g_strconcat(startOfHtml, "<body style=\"background-color:", colorCookies[i], "\"></body>",
                                                            endOfHtml, NULL);
                                     }
                                     else if (g_strcmp0(urlRestSplit[0], "/test") == 0)
                                     {
+					//printf("should show the test page\n");
                                         body = g_strconcat(startOfHtml, openP, url, " ", ipNumberFromClient,
                                                            ":", portNumber, closeP, argumentsHtml, endOfHtml, NULL);
                                     }
                                     else
                                     {
-                                        printf("should not show the color page\n");
+                                        //printf("should show normal page\n");
                                         body = g_strconcat(startOfHtml, openP, url, " ", ipNumberFromClient,
                                                            ":", portNumber, closeP, endOfHtml, NULL);
                                     }
@@ -367,7 +363,7 @@ int main(int argc, char *argv[])
                                         wholeHtmlCode = g_strconcat(header, body, NULL);
                                     }
                                     else
-                                    { // then we have a HEAD which only returns the headers
+                                    { // then we have a HEAD which only returns the headers not the body
                                         wholeHtmlCode = g_strconcat(header, NULL);
                                     }
                                     g_free(body);
@@ -401,7 +397,6 @@ int main(int argc, char *argv[])
                                 strcpy(contentLengthtTypeHeader, "Content-Length: ");
                                 strcat(contentLengthtTypeHeader, bodyLengthInChar);
                                 strcat(contentLengthtTypeHeader, "\r\n");
-                                printf("contentLengthtTypeHeader: %s\n", contentLengthtTypeHeader);
                                 g_free(header);
                                 header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader,
                                                      contentLengthtTypeHeader, endOfHeders, NULL);
@@ -432,8 +427,7 @@ int main(int argc, char *argv[])
                             gchar *unkownHeader = g_strconcat(firstLineOfHeader, contentTypeHeader, contentLengthtTypeHeader,
                                                               conectionHeader, endOfHeders, NULL);
                             wholeHtmlCode = g_strconcat(unkownHeader, "This service only supports GET, HEAD and POST", NULL);
-                            // Do this so the connection will be closed after the error message has been sent
-                            connectionHeaderValue = "close";
+                            connectionHeaderValue = "close"; // TODO
                             g_free(unkownHeader);
                         }
                         //For each request, a single line is printed to a log file in the format:
@@ -449,7 +443,6 @@ int main(int argc, char *argv[])
                         g_strfreev(messageSplit);
                     }
                 }
-                printf("---7\n");
             }
         }
     }
