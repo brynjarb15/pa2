@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     // welcome port. A backlog of one connection is allowed.
     listen(sockfd, 1);
     int connfd;
-    int timeout = 1500; //TODO: þetta ætti að vera 30000
+    int timeout = 30000; //TODO: þetta ætti að vera 30000
     int maxFds = 300;
     struct pollfd fds[maxFds]; // getum max tekið við 300 tengingum í einu
     int numberOfFds = 1;
