@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     // welcome port. A backlog of one connection is allowed.
     listen(sockfd, 1);
     int connfd;
-    int timeout = 1500; //TODO: þetta ætti að vera 30000
+    int timeout = 1500; // 1.5 sec
     int maxFds = 300;
     struct pollfd fds[maxFds]; // getum max tekið við 300 tengingum í einu
     int numberOfFds = 1;
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 
     char *ipNumberFromClient;
     int portNumberFromClient;
-
+    // Make some arrays wich keep stuff for each fd
     char *ipNumbersForClients[maxFds];
     int portNumbersForClients[maxFds];
     char colorCookies[maxFds][50];
@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
             for (int i = 1; i < numberOfFds; i++)
             {
                 int timeWithoutAction = timeNow - startTimeOfFds[i];
-                int timeoutTime = 30; // This should be 30
+                int timeoutTime = 30; // If fd has not been active for 30 sec we close it
                 if (timeWithoutAction >= timeoutTime)
                 {
                     printf("closing fds: %d\n", fds[i].fd);
@@ -120,19 +120,21 @@ int main(int argc, char *argv[])
                         memset(colorCookies[j], '\0', sizeof(colorCookies[j]));
                         strcpy(colorCookies[j], colorCookies[j + 1]);
                     }
+                    // Lower the Number of fds by 1 becose we closed 1 fd
                     numberOfFds--;
+                    // The next fd has the same i value as the one we just closed
+                    // so we have to check that i again
                     i--;
                 }
             }
-            //numberOfFds = 1;
         }
         else if (pollRet > 0)
         {
             //printf("pollRet > 0\n");
             if (fds[0].revents & POLLIN)
             {
-                // If this is true then there is a new POLLIN event
-                //We make a new connection
+                // If this is true then there is a new connection waiting
+                // We make a new connection
                 connfd = accept(sockfd, (struct sockaddr *)&client, &len);
                 if (connfd < 0)
                 {
@@ -140,11 +142,14 @@ int main(int argc, char *argv[])
                     break; //???
                 }
                 else
-                { // connfd > 0 þannig allt er í góðu
+                {
+                    // connfd > 0 þannig allt er í góðu
                     printf("New connection established\n");
                     fds[numberOfFds].fd = connfd;
                     fds[numberOfFds].events = POLLIN;
+                    // We put 0 in the revents because there could be old stuff in them if we don't
                     fds[numberOfFds].revents = 0;
+                    // Put stuff about the new connection in each array
                     ipNumbersForClients[numberOfFds] = inet_ntoa(client.sin_addr);
                     portNumbersForClients[numberOfFds] = ntohs(client.sin_port);
                     startTimeOfFds[numberOfFds] = time(NULL);
@@ -157,6 +162,7 @@ int main(int argc, char *argv[])
             {
                 if (fds[i].revents & POLLIN)
                 {
+                    // There should now be a new message waiting
                     ipNumberFromClient = ipNumbersForClients[i];
                     portNumberFromClient = portNumbersForClients[i];
                     connfd = fds[i].fd; // connfd is the fd of the current fds
@@ -173,8 +179,10 @@ int main(int argc, char *argv[])
                     else if (n == 0)
                     {
                         printf("Client closed the connection so we will close it also\n");
+                        // Close the connection
                         shutdown(fds[i].fd, SHUT_RDWR);
                         close(fds[i].fd);
+                        // Move stuff in the arrays because we removed 1 item from the arrays
                         for (int j = i; j < numberOfFds - 1; j++)
                         {
                             fds[j].fd = fds[j + 1].fd;
@@ -184,12 +192,14 @@ int main(int argc, char *argv[])
                             memset(colorCookies[j], '\0', sizeof(colorCookies[j]));
                             strcpy(colorCookies[j], colorCookies[j + 1]);
                         }
+                        // Lower the number of fds by 1
                         numberOfFds--;
                     }
                     else
                     {
                         // Get some headers from the message
                         message[n] = '\0';
+                        // Split the message up by line ending and get the headers
                         char **messageSplit = g_strsplit_set(message, " \r\n", 0); // if last >1 everything is split
                         gchar *requestMethod = messageSplit[0];                    // e.g. GET
                         char *urlRest = messageSplit[1];                           // e.g. /djammid
@@ -281,7 +291,7 @@ int main(int argc, char *argv[])
                                     strcat(argumentsHtml, closeP);
                                     next = allArguments[k + 1];
                                     gchar **oneArgSplit = g_strsplit(allArguments[k], "=", 2);
-                                    // TODO: Maybe this should not be here because this saves the bg for all websites
+                                    // Only does this if we will be showing the color page
                                     if (g_strcmp0(oneArgSplit[0], "bg") == 0 && g_strcmp0(urlRestSplit[0], "/color") == 0)
                                     {
                                         memset(colorCookies[i], '\0', sizeof(colorCookies[i]));
@@ -315,7 +325,7 @@ int main(int argc, char *argv[])
                             //address and port number of the requesting client
                             if (g_strcmp0(requestMethod, "GET") == 0 || g_strcmp0(requestMethod, "HEAD") == 0)
                             {
-                                //favicon is not processed
+                                //favicon is not processed and returns 404 error
                                 if (g_strcmp0(urlRest, "/favicon.ico") == 0)
                                 {
                                     // Free up memory so we can use them again
@@ -347,6 +357,10 @@ int main(int argc, char *argv[])
                                         body = g_strconcat(startOfHtml, openP, url, " ", ipNumberFromClient,
                                                            ":", portNumber, closeP, endOfHtml, NULL);
                                     }
+                                    // Get the length of the body and put it into the content-length header
+                                    // if we would not do this the client would not know when to stop reading the request
+                                    // HEAD should also get Content-length header which should be the same as a 
+                                    // GET Content-Length header
                                     int bodyLength = strlen(body);
                                     char bodyLengthInChar[10];
                                     sprintf(bodyLengthInChar, "%d", bodyLength);
@@ -360,14 +374,17 @@ int main(int argc, char *argv[])
 
                                     if (g_strcmp0(requestMethod, "GET") == 0)
                                     {
+                                        // GET returns the header and the body
                                         wholeHtmlCode = g_strconcat(header, body, NULL);
                                     }
                                     else
-                                    { // then we have a HEAD which only returns the headers not the body
+                                    {
+                                        // HEAD only returns the headers not the body
                                         wholeHtmlCode = g_strconcat(header, NULL);
                                     }
                                     g_free(body);
                                 }
+                                // Free memory we are done using
                                 g_strfreev(urlRestSplit);
                                 g_free(header);
                             }
@@ -390,6 +407,7 @@ int main(int argc, char *argv[])
                                 }
                                 gchar *wholeBody = g_strconcat(startOfHtml, openP, url, " ", ipNumberFromClient,
                                                                ":", portNumber, body, closeP, argumentsHtml, endOfHtml, NULL);
+                                // Get the length of the body and put it into the content-length header
                                 int bodyLength = strlen(wholeBody);
                                 char bodyLengthInChar[10];
                                 sprintf(bodyLengthInChar, "%d", bodyLength);
@@ -401,6 +419,7 @@ int main(int argc, char *argv[])
                                 header = g_strconcat(firstLineOfHeader, contentTypeHeader, conectionTypeHeader,
                                                      contentLengthtTypeHeader, endOfHeders, NULL);
                                 wholeHtmlCode = g_strconcat(header, wholeBody, NULL);
+                                // free up memory we are done using
                                 g_free(wholeBody);
                                 g_strfreev(split);
                                 g_free(header);
@@ -410,6 +429,7 @@ int main(int argc, char *argv[])
                         }
                         else
                         {
+                            // If it is not a GET, HEAD or POST request we return 501 NOT Implemented
                             printf("requestMethod was not known");
                             requestMethod = "UNKNOWN";
                             statusCode = "501 Not Implemented";
