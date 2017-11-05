@@ -1,0 +1,44 @@
+PA2
+
+The port number is gotten from a given parameter and a socket is created and bind. A TCP connection is accepted and a connfd is created as a handle dedicated to the connection. When a request is gotten the message is split up and put into an array. That array is then used to collect single information from the request.
+
+A poll is used to serve multiple clients in parallel. If the poll returns 0 then a timeout occurs if the poll returns a integer larger than zero and revent and pollin return true then there was a new pollin event and a new connection is made.
+
+A html page is created that holds different things for GET POST and HEAD requests.
+
+The GET request displays the URL of the requested page, the IP address and port number of the requestion client.
+
+The content for the POST request is the URL of the requested page, the IP address and port number of the requesting client and the data in the body of the POST request.
+
+the content for the HEAD request is only the header of the requested page.
+
+Depending on wich request is currently being processed the information for that request is then put together into a single string, the information is in the middle of the body of the html code. That whole string is then sent and the memory taken is then released again.
+
+For each request, a single line is printed into a log file. The line has the format: 
+timestamp : <client ip>:<client port> <request method> <requested URL> : <response code>
+
+Depending on the value of the connection header field and the time of inactivity of sending requests, the connection is either persitent or closed. If the value is closed, the time of inactivity is 30 seconds or we recieve HTTP/1.0 without a keep-alive connection then the connections will be closed but open for a new connection. If none of that applies then the connection will be persistent.
+
+
+Fairness:
+If there is no activity in poll for 1.5 seconds we check how long since each Fd was active and if some have not been active for 30
+seconds or more we close that Fd.
+
+PA3
+
+We parse the arguments of the request and generate different content for each request. 
+
+If the request has /test we parse the querie compontent of the URI and display the queries on the site one aregument per line.
+If the request has /color followed by the querie bg=somecolor we turn the web page into a empty page with the background color as the color given. The color is saved as a cookie and if the client calls /color with no new bg querie then the web page will show the color that was last requested.
+
+9.3
+
+A HTTP basic authentication is not secure because no encryption is used, no data integrity is used nor server authentication. 
+It is neccessary to allow secure authentication only over SSL because SSL addresses these issues. It provides critical process-to-process security services, including encryption, data integrity, server authentication and client authentication. 
+
+Bibliography
+Time stamp:
+https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
+
+recv:
+http://man7.org/linux/man-pages/man2/recv.2.html
